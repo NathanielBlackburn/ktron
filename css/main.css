@@ -1,0 +1,347 @@
+html {
+	height: 100%;
+}
+
+.container {
+	position: relative;
+}
+
+body {
+	height: 100%;
+	position: relative;
+}
+
+.carousel-inner {
+	overflow: visible;
+}
+
+#media-container {
+	width: 650px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+#cat-text {
+	margin: 10px 0;
+	text-align: center;
+	font-size: 17px;
+	font-weight: bold;
+}
+
+#question-text {
+	margin: 10px 0;
+	text-align: center;
+	font-size: 20px;
+	font-weight: bold;
+}
+
+.quiz-info-dash {
+	border-bottom: 1px dashed #000;
+	opacity: .3;
+}
+
+#quiz-text-bottom {
+	margin-top: 10px;
+	margin-bottom: 20px;
+}
+
+#tools-button {
+	position: absolute;
+	top: 0;
+	right: 25px;
+	cursor: pointer;
+	margin-top: -50px;
+}
+
+#tools-button img {
+	width: 48px;
+	height: 48px;
+}
+
+div#main {
+	height: 80%;
+	padding-top: 60px;
+}
+	
+.center {
+	text-align: center;	
+}
+
+#settings-back {
+	position: absolute;
+	right: 30px;
+	top: 0;
+}
+
+button.rounded {
+	border-radius: 15px;
+}
+
+.players[multiple] {
+	height: 120px;
+}
+
+.bordered-small {
+	padding: 5px;
+	border: 1px solid #DDD;
+	border-radius: 5px;
+	box-shadow: 3px 3px 3px #888;
+}
+
+.bordered-medium {
+	padding: 5px;
+	border: 1px solid #DDD;
+	border-radius: 5px;
+	box-shadow: 5px 5px 5px #888;
+}
+
+.bordered-medium button.close {
+	margin-top: -5px;
+}
+
+.column {
+	display: inline-block;
+	vertical-align: top;
+}
+
+.floated-right {
+	float: right;
+}
+
+.forty-percent {
+	width: 40%;
+}
+
+.twenty-percent {
+	width: 18%;
+}
+
+#player-choice {
+	width: 500px;
+}
+
+#player-add {
+	width: 290px;
+	position: absolute;
+	top: 50px;
+	background: #fff;
+	left: 400px;
+	padding: 10px;
+}
+
+#player-add form {
+	margin-bottom: 10px;
+}
+
+#player-choice select {
+	width: 150px;
+}
+
+.btn-tiny {
+	padding: 3px 5px;
+	font-size: 12px;
+	line-height: 10px;
+	width: 20px;
+}
+
+.inline {
+	display: inline-block;
+}
+
+#questions-choice {
+	width: 600px;
+	margin-top: 30px;
+	padding: 10px;
+	vertical-align: top;
+}
+
+select#questions-list {
+	width: 280px;
+	margin: 0;
+}
+
+.fifty {
+	width: 49%;
+}
+
+.seventy-five {
+	width: 74%;
+}
+
+#error-message {
+	padding: 20px;
+	width: 300px;
+	margin-left: -150px;
+}
+
+#error-message p#message {
+	color: red;
+	padding: 0;
+	margin: 0;
+}
+
+.modal.fade.in {
+	top: 30%;
+}
+
+#questions-load {
+	padding: 10px;
+	width: 400px;
+}
+
+#move-from-right-to-left {
+	margin-top: 40px;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#move-from-left-to-right {
+	margin-top: 20px;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.middle {
+	vertical-align: middle;
+}
+
+#stats-page div.bordered-medium {
+	padding: 10px 25px 0 25px;
+}
+
+#stats-page div.bordered-medium button.close {
+	margin-top: 0;
+}
+
+#stats-page div.bordered-medium {
+	margin-bottom: 20px;
+}
+
+#question-set-count {
+	margin-bottom: 0;
+}
+
+a.error-tooltip {
+	color: red;
+}
+
+.info-quiz {
+	text-align: center;
+	font-size: 15px;
+	margin-bottom: 7px;
+}
+
+#image-container {
+	margin: 10px 0 10px;
+	text-align: center;
+	max-width: 100%;
+	z-index: 20;
+	position: relative;
+}
+
+#image-container img {
+	max-height: 490px;
+}
+
+#audio-container {
+	margin: 15px 0 10px;
+	text-align: center;
+	z-index: 20;
+	position: relative;
+}
+
+#movie-container {
+	margin: 15px 0 0 0;
+	max-width: 100%;
+	z-index: 20;
+	position: relative;
+}
+
+#movie-container > div {
+	width: 100%;
+	height: 100%;
+}
+
+#movie-container video {
+	max-width: 100%;
+}
+
+#movie-overlay {
+	background: black;
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+
+#cinema-fade {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	background-color: #000;
+	z-index: 10;
+}
+
+#cinema-fade-modal {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	background-color: #000;
+	z-index: 10;
+}
+
+#cinema-light {
+	cursor: pointer;
+	z-index: 20;
+	position: absolute;
+	width: 32px;
+	height: 32px;
+	background: url(../images/light.png);
+	transform: rotate(180deg);
+	-webkit-transform: rotate(180deg);
+	-moz-transform: rotate(180deg);
+	right: 30px;
+	top: 30px;
+}
+
+.white {
+	color: transparent;
+}
+
+#main-page-control-buttons {
+	margin-top: 20px;
+}
+
+#player-stats-modal-wrapper {
+	position: absolute;
+	top: 0;
+	width: 100%;
+	z-index: 20;
+}
+
+#player-stats-modal-container {
+	position: relative;
+}
+
+#player-stats-modal {
+	background: #FFF;
+	margin-top: 100px;
+}
+
+#player-stats-modal.bordered-medium button.close {
+	margin-top: 1px;
+	margin-right: 5px;
+}
+
+/* #answered-one {
+	margin-bottom: 10px;
+} */
+
+#not-answered {
+	margin-bottom: 15px;
+}
+
+span.hide {
+	color: transparent;
+}
