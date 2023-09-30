@@ -1,0 +1,37 @@
+0. Zainstalować sobie cokolwiek umożliwiającego uruchamianie kodu php na kompie. Np. XAMPP (https://www.apachefriends.org/) - polecam zainstalować w jakimś niewrażliwym systemowo katalogu, np. C:\xampp albo D:\xampp itd., byle nie w "Program Files" lub podobnie, bo wtedy kiepsko działa. Po zainstalowaniu sprawdzić, czy można uruchomić kod php poprzez otwarcie wiesza poleceń (klawisz Windows > wpisać: cmd i uruchomić wiersz polecenia) i wpisanie: "php -v" (bez cudzysłowów). Jeśli powie, że "php" to nierozpoznane polecenie, spróbować "C:\xampp\php\php -v" (podmienić C:\xampp na ścieżkę, gdzie zainstalowano xamppa). Jeśli dalej nie halo, dać mi znać ;)
+
+1. Zduplikować sobie arkusz w Google Sheets (https://docs.google.com/spreadsheets/d/1OTYyNwZ1PTgXWi3H8HpvafYv8vVgnxsK3YvVihaMRR0/edit?usp=sharing) na własnym koncie (Plik > Utwórz kopię) i wypełnić:
+    - zmienić tytuł arkusza na jakiś wskazujący, co to a konkurs, np. "nostalgia69",
+    - Numer pytania w kolumnie A (ten numer jest wykorzystywany do znalezienia obrazków, filmów i mp3 na dysku),
+    - Pytanie w kolumnie B (w przypadku kalamburów można po prostu napisać: "Kalambury" albo "Pokaż kalambura" albo "Smaż się w piekle cholerny poganinie", co kto woli ;) ),
+    - Typ pytania w kolumnie C (obrazki: jpg/png/gif/bmp/webp, muzyka: mp3, filmy: mp4, jeśli pytanie jest czysto tekstowe, zostawić puste),
+    - Odpowiedź w kolumnie D (w przypadku kalamburów można tu nic nie podawać),
+    - Typ odpowiedzi w kolumnie E (tak samo, jak w typie pytania).
+
+2. Po uzupełnieniu wyeksportować przez Plik > Pobierz > Wartości oddzielane przecinkami (csv). Dostanie skomplikowaną nazwę typu "nostalgia69 - przykladowy_konkurs" albo coś podobnego, więc trzeba mu po prostu zmienić nazwę na jak najkrótszą, np. "nostalgia69.csv".
+
+3. Przerzucić pobrany plik csv do katalogu "pytania".
+
+3. Utworzyć kopię pliku "przykladowy_konkurs.conf" i zmienić jego nazwę na jakąś prostą do wpisania ręcznie, bez spacji, znaków specjalnych i polskich znaków (np. nostalgia69.conf).
+
+4. Otworzyć ten plik w notatniku i uzupełnić:
+    - obok "title" w cudzysłowy wpisać tytuł konkursu (np. "Ekstremalne bajkowe nostalgie, edycja 69"),
+    - obok "media" w cudzysłowy wpisać nazwę katalogu, gdzie znajdą się pliki multimedialne do konkursu (jak najprościej, czyli np. "nostalgia69"),
+    - obok "csvfile" w cudzysłowy wpisać nazwę pliku z punktu 3 (czyli np. "nostalgia69.csv"),
+    - standardowo konkurs posiada przyciski: 0.5 pkt, 1 pkt, 1.5 pkt i 2 pkt. Jeśli któregoś nie potrzebujesz - usuń z linii "buttons" jego wpis, razem z przecinkiem, jeśli za nim stoi, czyli np. do usunięcia będzie: "answered-onehalf",
+    - reszta bez zmian - i zapisać.
+
+5. W katalogu "pytania" stworzyć nowy katalog o nazwie takiej, jak przy polu "media" w punkcie 4. Wrzucić do niego wszystkie pliki multimedialne. Nazwy plików powinny odpowiadać numerom pytania z punktu 1, czyli "1.jpg", "02.mp3", "004.mp4" (aplikacja zrozumie max. do dwóch zer z przodu). Multimedia do odpowiedzi (o ile będą potrzebne) powinny kończyć się literą "a", czyli np. "03a.jpg", "4a.png" itd.
+
+6. W Eksploratorze Windows trzymając klawisz Shift nacisnąć prawy klawisz myszy wewnątrz katalogu z pytaniami i wybrać "Otwórz wiersz polecenia tutaj".
+
+7. W otwartym oknie polecenia powinno być widać, że jesteśmy w katalogu z pytaniami, tj. coś w deseń "konkursotron/pytania" lub coś podobnego.
+
+8. Wpisać w wierszu poleceń: <php> parse.php <nazwa pliku .conf>, gdzie:
+    <php> - w zależności od tego, która opcja zadziałała w pkt. 0, albo samo "php" albo ścieżka do php, czyli D:\xampp\php\php albo co tam wyszło w punkcie zero,
+    <nazwa pliku .conf> - nazwa pliku utworzonego w pkt. 3, czyli np. "nostalgia69.conf".
+
+9. Po uruchomieniu wyświetli się komunikat, czy wszystko poszło ok. Jeśli nie, w katalogu "pytania" pojawi się plik "log.txt", gdzie znajduje się informacja o tym, co należy poprawić (może brakować plików, pliki mogą mieć niewłaściwe rozszerzenia itp.). Po poprawieniu zamknąć notatnik z plikiem loga i znów uruchomić parser zgodnie z punktem 8. Proces powtarzać do skutku.
+
+10. Jeśli parser powie "Nie odnotowano bledow", konkurs jest gotowy do uruchomienia.
+

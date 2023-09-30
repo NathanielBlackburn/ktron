@@ -1,21 +1,21 @@
-var Stats = {
+const Stats = {
 
-	overallPlayersPoints: function() {
+	overallPlayersPoints: () => {
 
-		var points = db.query('points');
-		var players = db.query('players');
-		var result = [];
-		for (var i = 0; i < players.length; i++) {
-			result[players[i].ID] = {
-				ID: players[i].ID,
-				name: players[i].name,
+		const points = db.query('points');
+		const players = db.query('players');
+		let result = [];
+		for (const player of players) {
+			result[player.ID] = {
+				ID: player.ID,
+				name: player.name,
 				points: 0
 			};
 		}
-		for (var i = 0; i < points.length; i++) {
-			result[points[i].id_player].points += parseFloat(points[i].points);
+		for (const pointsEntry of points) {
+			result[pointsEntry.id_player].points += parseFloat(pointsEntry.points);
 		}
-		result.sort(function(a, b) {
+		result.sort((a, b) => {
 			if (a.points < b.points) {
 				return 1;
 			} else if (a.points == b.points) {
@@ -45,7 +45,7 @@ var Stats = {
 
 	},
 
-	playerPointsPrepare: function(node) {
+	playerPointsPrepare: (node) => {
 
 		if ($(node).data('player-id')) {
 			var playerId = $(node).data('player-id');
@@ -55,15 +55,15 @@ var Stats = {
 			var gameCodes = {};
 			for (var i = 0; i < games.length; i++) {
 				games[i].points = 0;
-				for (var j = 0; j < questions.length; j++) {
-					if (games[i].game_code == questions[j].code) {
-						if (typeof gameCodes[questions[j].title] == 'undefined')
-							gameCodes[questions[j].title] = 1;
+				for (var j = 0; j < quizzes.length; j++) {
+					if (games[i].game_code == quizzes[j].code) {
+						if (typeof gameCodes[quizzes[j].title] == 'undefined')
+							gameCodes[quizzes[j].title] = 1;
 						else
-							gameCodes[questions[j].title]++;
-						games[i].title = questions[j].title;
-						if (gameCodes[questions[j].title] > 1)
-							games[i].title += ' (' + gameCodes[questions[j].title] + ')';
+							gameCodes[quizzes[j].title]++;
+						games[i].title = quizzes[j].title;
+						if (gameCodes[quizzes[j].title] > 1)
+							games[i].title += ' (' + gameCodes[quizzes[j].title] + ')';
 					}
 				}
 			}
@@ -100,7 +100,7 @@ var Stats = {
 
 	},
 
-	playerPointsDisplay: function(games, playerId, name) {
+	playerPointsDisplay: (games, playerId, name) => {
 
 		$('#player-stats tbody').empty();
 		var lp = 0;
@@ -121,7 +121,7 @@ var Stats = {
 
 	},
 
-	gamePointsPrepare: function(node) {
+	gamePointsPrepare: (node) => {
 
 		var gameId = false;
 		if ($(node).data('game-id'))
@@ -173,7 +173,7 @@ var Stats = {
 
 	},
 
-	gamePointsDisplay: function(players, gameId, title) {
+	gamePointsDisplay: (players, gameId, title) => {
 
 		$('#game-stats tbody').empty();
 		var lp = 0;
@@ -194,7 +194,7 @@ var Stats = {
 
 	},
 
-	gamePointsModal: function() {
+	gamePointsModal: () => {
 
 		var players = db.query('players');
 		var points = db.query('points', {id_game: quiz.gameId});
@@ -237,7 +237,7 @@ var Stats = {
 			}
 		});
 		var lp = 0;
-		$('#player-stats-modal tbody').html('');
+		$('#player-stats-modal tbody').empty();
 		for (var i = 0; i < players.length; i++) {
 			if (typeof players[i] != 'undefined') {
 				lp++;
@@ -256,7 +256,7 @@ var Stats = {
 
 	},
 
-	getPlayersPointsInGame: function(player, game) {
+	getPlayersPointsInGame: (player, game) => {
 
 		pointsWon = 0;
 		var points = db.query('points', {id_player: player, id_game: game});

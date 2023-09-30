@@ -239,12 +239,11 @@ $allQuestionFiles = array_filter(scandir($jsPath), function($file) use ($jsPath)
 	return !is_dir($jsPath . DS . $file) && ($file != '.gitkeep');
 });
 
-$config = 'var questions = [];' . PHP_EOL . PHP_EOL;
-$config .= 'var config = {' . PHP_EOL;
-$config .= "\t" . 'questionFiles: ' . json_encode(array_values($allQuestionFiles)) . ',' . PHP_EOL;
+$config = 'const quizzes = [];' . PHP_EOL . PHP_EOL;
+$config .= 'const config = {' . PHP_EOL;
+$config .= "\t" . 'quizFiles: ' . json_encode(array_values($allQuestionFiles)) . ',' . PHP_EOL;
 $config .= "\t" . 'imageTypes: [\'png\', \'gif\', \'jpg\', \'jpeg\', \'bmp\', \'webp\'],' . PHP_EOL;
-$config .= "\t" . 'debugMode: false,' . PHP_EOL;
-$config .= "\t" . 'lakeQuiz: false' . PHP_EOL;
+$config .= "\t" . 'debugMode: false' . PHP_EOL;
 $config .= '};' . PHP_EOL;
 file_put_contents('../js/config.js', $config);
 
@@ -252,12 +251,12 @@ $encodedQuestions = json_encode($parsedQuestions);
 if (!$encodedQuestions) {
 	die('Nieprawidlowe kodowanie pytan.');
 } else {
-	$resultFile = 'var newQuestions = {"author":' . json_encode(prepEnc($author, $parEncoding))
+	$resultFile = 'const newQuiz = {"author":' . json_encode(prepEnc($author, $parEncoding))
 		. ',"title":' . json_encode(prepEnc($title, $parEncoding))
 		. ',"questions":' . $encodedQuestions
 		. ',"buttons":' . json_encode($buttons)
 		. ',"code":' . json_encode(prepEnc($codeName, $parEncoding)) . '};' . PHP_EOL . PHP_EOL
-		. 'questions.push(newQuestions);' . PHP_EOL;
+		. 'quizzes.push(newQuiz);' . PHP_EOL;
 	fwrite($f, $resultFile);
 	fclose($f);
 

@@ -1,15 +1,12 @@
-var Page = {
+const Page = {
 
 	currentSettingsPage: 1,
 
-	go: function(number, noHide) {
-		if (typeof number == 'undefined')
-			number = 0;
-		if (typeof noHide == 'undefined')
-			noHide = false;
+	go: function(number = 0, noHide = false) {
 		$('.carousel').carousel(number);
-		if (number != 0)
+		if (number != 0) {
 			this.currentSettingsPage = number;
+		}
 		if (!noHide) {
 			if ($('#navbar').data('visible')) {
 				$('#navbar').slideUp(500);
@@ -22,28 +19,22 @@ var Page = {
 	},
 	
 	start: function() {
-
 		this.go();
-
 	},
 
 	menuButton: function(button) {
-
 		if (!$(button).hasClass('active')) {
 			$('.navbar button.page').each(function() {
-
 				$(this).removeClass('active');
-
 			});
 			this.go($(button).data('page'), true);
 			$(button).addClass('active');
 		}
 
 	}
-
 };
 
-var toggleSlide = function(element, noClose, speed) {
+const toggleSlide = (element, noClose, speed) => {
 
 	if (typeof speed == 'undefined')
 		speed = 300;
@@ -57,108 +48,80 @@ var toggleSlide = function(element, noClose, speed) {
 
 };
 
-var fillDataNodes = function(node, clear) {
-
-	if (typeof clear == 'undefined')
-		clear = false;
+const fillDataNodes = (node, clear = false) => {
+	const players = db.query('players').sort((a, b) => a.name.localeCompare(b.name));
+	const chosenIDs = db.query('players_chosen').map((player) => parseInt(player.id_player));
 	switch (node) {
-		case 'players':
-			var players = db.query('players');
-			var list = $('#all-players')[0];
-			if (clear)
+		case 'players': {
+			const list = $('#all-players');
+			if (clear) {
 				$(list).empty();
-			players.sort(function(a, b) {
-				if (a.name < b.name)
-					return -1;
-				else if (a.name == b.name)
-					return 0;
-				else if (a.name > b.name)
-					return 1;
-			});
-			var players_chosen = db.query('players_chosen');
-			var chosen_IDs = [];
-			for (var i = 0; i < players_chosen.length; i++)
-				chosen_IDs.push(parseInt(players_chosen[i].id_player));
-			for (var i = 0; i < players.length; i++) {
-				if (chosen_IDs.indexOf(players[i].ID) == -1) {
-					var option = document.createElement('option');
-					option.setAttribute('value', players[i].ID);
-					option.appendChild(document.createTextNode(players[i].name));
-					$(option).dblclick(function() {
-						playerMoveToLeft(this);
-					});
-					list.appendChild(option);
-				}
 			}
-			break;
-		case 'players_chosen':
-			var players_chosen = db.query('players_chosen');
-			var players = db.query('players');
-			var list = $('#players-chosen')[0];
-			if (clear)
-				$(list).empty();
-			players.sort(function(a, b) {
-				if (a.name < b.name)
-					return -1;
-				else if (a.name == b.name)
-					return 0;
-				else if (a.name > b.name)
-					return 1;
-			});
-			var chosen_IDs = [];
-			for (var i = 0; i < players_chosen.length; i++)
-				chosen_IDs.push(parseInt(players_chosen[i].id_player));
-			var players = db.query('players');
-			for (var i = 0; i < players.length; i++) {
-				if (chosen_IDs.indexOf(players[i].ID) != -1) {
-					var option = document.createElement('option');
-					option.setAttribute('value', players[i].ID);
-					option.appendChild(document.createTextNode(players[i].name));
-					$(option).dblclick(function() {
-						playerMoveToRight(this);
+			players
+				.filter(player => !chosenIDs.includes(player.ID))
+				.forEach(player => {
+					const option = document.createElement('option');
+					option.appendChild(document.createTextNode(player.name));
+					$(option).data('quiz-player-id', player.ID);
+					$(option).on('dblclick', (event) => {
+						playerMoveToLeft($(event.target).data('quiz-player-id'));
 					});
-					list.appendChild(option);
-				}
-			}
-			break;
-		case 'questions':
-			var list = $('#questions-list')[0];
-			if (clear)
-				$(list).empty();
-			if (questions.length) {
-				for (var i = 0; i < questions.length; i++) {
-					var option = document.createElement('option');
-					option.setAttribute('value', i);
-					option.appendChild(document.createTextNode(questions[i].title));
-					list.appendChild(option);
-				}
-				updateQuestionsDescription(0);
-				$(list).unbind('change');
-				$(list).change(function() {
-					updateQuestionsDescription($(this).find(':selected')[0].getAttribute('value'));
+					list.append(option);
 				});
-			}
 			break;
+		}
+		case 'players_chosen': {
+			const list = $('#players-chosen');
+			if (clear) {
+				$(list).empty();
+			}
+			players
+				.filter(player => chosenIDs.includes(player.ID))
+				.forEach(player => {
+					const option = document.createElement('option');
+					option.appendChild(document.createTextNode(player.name));
+					$(option).data('quiz-player-id', player.ID);
+					$(option).on('dblclick', (event) => {
+						playerMoveToRight($(event.target).data('quiz-player-id'));
+					});
+					list.append(option);
+				});
+			break;
+		}
+		case 'questions': {
+			if (!KTron.quizzes.length) {
+				return;
+			}
+			const list = $('#quiz-list');
+			if (clear) {
+				$(list).empty();
+			}
+			KTron.quizzes.forEach(quiz => {
+				const option = document.createElement('option');
+				option.appendChild(document.createTextNode(quiz.title));
+				$(option).data('quiz-code', quiz.code);
+				list.append(option);
+			});
+			updateQuestionsDescription(KTron.quizzes[0]);
+			$(list).off('change');
+			$(list).on('change', (event) => {
+				const code = $(event.target).find(':selected').first().data('quiz-code');
+				updateQuestionsDescription(KTron.quizzes.find(quiz => quiz.code == code));
+			});
+			break;
+		}
 	}
 
 };
 
-var updateQuestionsDescription = function(number) {
-
-	rows = db.query('players', {name: questions[number].author});
-	var author = questions[number].author;
-	// if (!rows.length) {
-	// 	author = '<a id="author-error" class="error-tooltip" href="#" data-toggle="tooltip">' + author + '</a>';
-	// }
-	$('#question-set-title').html('<strong>Tytuł: </strong>  <span class="content">' + questions[number].title + '</span>');
-	$('#question-set-author').html('<strong>Autor: </strong>  <span class="content">' + author + '</span>');
-	$('#question-set-count').html('<strong>Ilość pytań: </strong>  <span class="content">' + questions[number].questions.length + '</span>');
-	// if (!rows.length)
-	// 	$('#author-error').tooltip({html: true, title: 'Błąd! Nie ma takiego<br />użytkownika w bazie.'});
+const updateQuestionsDescription = (quiz) => {
+	$('#question-set-title').html('<strong>Tytuł: </strong>  <span class="content">' + quiz.title + '</span>');
+	$('#question-set-author').html('<strong>Autor: </strong>  <span class="content">' + quiz.author + '</span>');
+	$('#question-set-count').html('<strong>Liczba pytań: </strong>  <span class="content">' + quiz.questions.length + '</span>');
 
 };
 
-var error = function(msg, modal) {
+const error = (msg, modal) => {
 
 	if (typeof modal == 'undefined')
 		modal = false;
@@ -171,9 +134,9 @@ var error = function(msg, modal) {
 
 };
 
-var playerAdd = function() {
+const playerAdd = () => {
 
-	var name = $('#player-add-name').val();
+	const name = $('#player-add-name').val();
 	if (name == '') {
 		error('Podaj imię/nazwę drużyny!', true);
 		return;
@@ -186,15 +149,13 @@ var playerAdd = function() {
 			db.insert('players', {name: name});
 			db.commit();
 			fillDataNodes('players', true);
-			updateQuestionsDescription($('#questions-choice').find(':selected')[0].getAttribute('value'));
 			$('#player-add-name').val('');
-			toggleSlide('#player-add', false);
 		}
 	}	
 
 };
 
-var playerRemove = function() {
+const playerRemove = () => {
 
 	var selected = $('#all-players option:selected');
 	if (selected.length)
@@ -209,48 +170,47 @@ var playerRemove = function() {
 
 };
 
-var playerMoveToLeft = function(player) {
+const playerMoveToLeft = (playerId) => {
 
-	db.insert('players_chosen', {id_player: player.getAttribute('value')});
+	db.insert('players_chosen', {id_player: playerId});
 	db.commit();
 	fillDataNodes('players', true);
 	fillDataNodes('players_chosen', true);
 
 };
 
-var playerMoveToRight = function(player) {
-
-	db.deleteRows('players_chosen', {id_player: player.getAttribute('value')});
+const playerMoveToRight = (playerId) => {
+	db.deleteRows('players_chosen', {id_player: playerId});
 	db.commit();
 	fillDataNodes('players', true);
 	fillDataNodes('players_chosen', true);
-
 };
 
-var allPlayersToLeft = function() {
-
-	$('#all-players option').each(function() {
-		playerMoveToLeft(this);
+const allPlayersToLeft = () => {
+	const players = db.query('players');
+	players.forEach(player => {
+		db.insert('players_chosen', {id_player: player.ID});
 	});
-
+	db.commit();
+	fillDataNodes('players', true);
+	fillDataNodes('players_chosen', true);
 };
 
-var allPlayersToRight = function() {
-	
-	$('#players-chosen option').each(function() {
-		playerMoveToRight(this);
-	});
-
+const allPlayersToRight = () => {
+	db.truncate('players_chosen');
+	db.commit();
+	fillDataNodes('players', true);
+	fillDataNodes('players_chosen', true);
 };
 
-var playerAddShow = function() {
+const playerAddShow = () => {
 
 	toggleSlide('#player-add');
 	$('#player-add-name').focus();
 
 };
 
-var lightSwitch = function(fade) {
+const lightSwitch = (fade) => {
 
 	if (typeof fade == 'undefined')
 		fade = '#cinema-fade';
@@ -268,7 +228,7 @@ var lightSwitch = function(fade) {
 
 };
 
-var loadScript = function(src, last) {
+const loadScript = (src, last) => {
 
 	var script = document.createElement('script');
 	script.type = 'text/javascript';
@@ -282,18 +242,19 @@ var loadScript = function(src, last) {
 
 };
 
-var loadQuestions = function() {
+const loadQuestions = () => {
 
-	if (config && config.questionFiles) {
-		while (config.questionFiles.length) {
-			var script = config.questionFiles.pop();
-			loadScript(script, config.questionFiles.length == 0);
+	if (KTron.config && KTron.config.quizFiles) {
+		const config = KTron.config;
+		while (config.quizFiles.length) {
+			const script = config.quizFiles.pop();
+			loadScript(script, config.quizFiles.length == 0);
 		}
 	}
 
 };
 
-var bindKeypress = function() {
+const bindKeypress = () => {
 
 	$(document).keypress(function(event) {
 		if (event.which == 80 && event.shiftKey && typeof quiz.gameId != 'undefined') {
@@ -303,7 +264,7 @@ var bindKeypress = function() {
 
 };
 
-var init = function() {
+const init = () => {
 
 	fillDataNodes('questions', true);
 	$('.carousel').carousel({
@@ -328,7 +289,7 @@ var init = function() {
 
 };
 
-var pointsToWords = function(number) {
+const pointsToWords = (number) => {
 
 	number = parseFloat(number);
 	if (Math.floor(number) != number) {
@@ -346,31 +307,10 @@ var pointsToWords = function(number) {
 
 };
 
-var inObject = function(obj, prop, val) {
-
-	var found = false;
-	for (var key in obj) {
-		if (obj.hasOwnProperty(key)) {
-			if (key == prop && obj[key] == val)
-				found = true;
-			else if (obj[key] instanceof Array) {
-				for (var i = 0; i < obj[key].length; i++) {
-					if (obj[key][i] instanceof Object)
-						found = found || inObject(obj[key][i], prop, val);
-				}
-			}
-		}
-	}
-	return found;
-
-};
-
-function isDisabled(element) {
+const isDisabled = (element) => {
 	return $(element).hasClass('disabled');
 }
 
-$(function() {
-
+$(() => {
 	loadQuestions();
-
 });

@@ -2,13 +2,13 @@
 	round: 1
 };
 
-var quizStart = function() {
+const quizStart = () => {
 
 	if (!$('#players-chosen option').length) {
 		error('Nie wybrano graczy!', true);
 	} else {
 		var questionsId = $('#questions-choice').find(':selected')[0].getAttribute('value');
-		var author = questions[questionsId].author;
+		var author = quizzes[questionsId].author;
 		$('#players-chosen option').each(function() {
 			if ($(this).text().toLowerCase() == author.toLowerCase())
 				playerMoveToRight(this);
@@ -16,11 +16,11 @@ var quizStart = function() {
 		if ($('#players-chosen option').length == 0)
 			error('Nie wybrano graczy!', true);
 		else {
-			var rows = db.query('players', {name: questions[questionsId].author});
+			var rows = db.query('players', {name: quizzes[questionsId].author});
 			if (!rows.length) {
 				error('Autora konkursu brak w bazie danych! Tak nie można no!', true);
 			} else {
-				var gameCode = questions[questionsId].code;
+				var gameCode = quizzes[questionsId].code;
 				var rows = db.query('games', {game_code: gameCode});
 				if (rows.length == 0 || (rows.length > 0 && confirm('Ten konkurs był już rozgrywany. Na pewno rozpocząć grę?'))) {
 					startGameProgress(questionsId);
@@ -31,7 +31,7 @@ var quizStart = function() {
 
 };
 
-var checkQuizProgress = function() {
+const checkQuizProgress = () => {
 
 	var rows = db.query('games', {finished: 'false'});
 	var rowsOvertime = db.query('games', {finished: 'overtime'});
@@ -55,7 +55,7 @@ var checkQuizProgress = function() {
 
 };
 
-var restoreGameProgress = function(game) {
+const restoreGameProgress = (game) => {
 
 	$('div#main').css('padding-top', '10px');
 	$('#quiz-info').show();
@@ -65,12 +65,12 @@ var restoreGameProgress = function(game) {
 	$('#quiz-start').hide();
 	$('#cinema-light').show();
 	quiz.gameId = game.ID;
-	for (var i = 0; i < questions.length; i++) {
-		if (questions[i].code == game.game_code) {
-			quiz.questions = questions[i].questions;
+	for (var i = 0; i < quizzes.length; i++) {
+		if (quizzes[i].code == game.game_code) {
+			quiz.questions = quizzes[i].questions;
 			quiz.qsId = i;
-			quiz.code = questions[i].code;
-			quiz.buttons = questions[i].buttons;
+			quiz.code = quizzes[i].code;
+			quiz.buttons = quizzes[i].buttons;
 		}
 	}
 	for (var i = 0; i < quiz.questions.length; i++) {
@@ -147,7 +147,7 @@ var restoreGameProgress = function(game) {
 	
 };
 
-var findQuestion = function(qId) {
+const findQuestion = (qId) => {
 
 	var found = null;
 	if (quiz.questions) {
@@ -163,14 +163,14 @@ var findQuestion = function(qId) {
 
 };
 
-var startGameProgress = function(qsId) {
+const startGameProgress = (qsId) => {
 
 	clearMainPage();
 	$('div#main').css('padding-top', '10px');
-	quiz.questions = questions[qsId].questions;
+	quiz.questions = quizzes[qsId].questions;
 	quiz.qsId = qsId;
-	quiz.code = questions[qsId].code;
-	quiz.buttons = questions[qsId].buttons;
+	quiz.code = quizzes[qsId].code;
+	quiz.buttons = quizzes[qsId].buttons;
 	for (var i = 0; i < quiz.questions.length; i++) {
 		quiz.questions[i].used = false;
 	}
@@ -185,7 +185,7 @@ var startGameProgress = function(qsId) {
 
 };
 
-var nextQuestion = function() {
+const nextQuestion = () => {
 
 	var newQuestion = Math.floor(Math.random() * quiz.questions.length);
 	while (quiz.questions[newQuestion].used)
@@ -203,7 +203,7 @@ var nextQuestion = function() {
 
 };
 
-var questionAnswered = function() {
+const questionAnswered = () => {
 
 	$('#get-answer').hide();
 	$('#end-quiz').hide();
@@ -212,7 +212,7 @@ var questionAnswered = function() {
 
 };
 
-var answeredCorrectly = function(points) {
+const answeredCorrectly = (points) => {
 
 	if (typeof points == 'undefined')
 		points = 1;
@@ -228,7 +228,7 @@ var answeredCorrectly = function(points) {
 
 };
 
-var answeredIncorrectly = function() {
+const answeredIncorrectly = () => {
 
 	var question = quiz.questions[quiz.currentQuestion];
 	player = quiz.players[quiz.currentPlayer];
@@ -242,7 +242,7 @@ var answeredIncorrectly = function() {
 	
 };
 
-var questionsLeft = function() {
+const questionsLeft = () => {
 
 	var result = quiz.questions.length;
 	for (var i = 0; i < quiz.questions.length; i++) {
@@ -253,13 +253,13 @@ var questionsLeft = function() {
 
 };
 
-var roundsLeft = function() {
+const roundsLeft = () => {
 
 	return Math.floor((questionsLeft() + 1 + quiz.currentPlayer) / quiz.players.length) - 1;
 
 };
 
-var endRound = function() {
+const endRound = () => {
 
 	togglePointButtons(false);
 	quiz.currentPlayer = getNextPlayer();
@@ -283,7 +283,7 @@ var endRound = function() {
 
 };
 
-var showPewDiePie = function(noPewds) {
+const showPewDiePie = (noPewds) => {
 
 	$('#image-container').empty();
 	$('#movie-container').empty();
@@ -292,18 +292,8 @@ var showPewDiePie = function(noPewds) {
 	if (!noPewds) {
 		var mp4 = document.createElement('video');
 		mp4.className = 'question-video';
-		if (config.lakeQuiz) {
-			if (quiz.questions.length - questionsLeft() == 29) {
-				mp4.src = 'images/spahkh.mp4';
-			} else if (quiz.questions.length - questionsLeft() == 73) {
-				mp4.src = 'images/whaa.mp4';
-			} else {
-				mp4.src = 'images/pewds.mp4';
-			}
-		} else {
-			mp4.src = 'images/pewds.mp4';
-		}
-		$(mp4).bind('ended', function() {
+		mp4.src = 'images/pewds.mp4';
+		$(mp4).on('ended', () => {
 			nextQuestion();	
 		});
 		$('#movie-container').append(mp4);
@@ -314,13 +304,13 @@ var showPewDiePie = function(noPewds) {
 	}
 };
 
-var canQuizBeFinishedBeforetime = function() {
+const canQuizBeFinishedBeforetime = () => {
 
 	return quiz.currentPlayer == 0 && quiz.round > 1 && $('#get-answer').is(':visible') && !quiz.overtime;
 
 };
 
-var endQuiz = function(dontAsk, places) {
+const endQuiz = (dontAsk, places) => {
 	if (dontAsk || (confirm('Czy na pewno zakończyć grę?') && confirm('Czy na pewno NA PEWNO zakończyć grę?'))) {
 		db.update('games', {ID: quiz.gameId}, function(row) {
 			row.finished = 'true';
@@ -470,7 +460,7 @@ const showAnswer = (question, noDatabase) => {
 
 };
 
-var getCurrentPlayerName = function(playerNumber) {
+const getCurrentPlayerName = (playerNumber) => {
 
 	var pChosen = db.query('players_games', {id_game: quiz.gameId});
 	if (pChosen.length) {
@@ -485,9 +475,9 @@ var getCurrentPlayerName = function(playerNumber) {
 
 };
 
-var newQuiz = function(qsId) {
+const newQuiz = (qsId) => {
 
-	var gameId = db.insert('games', {game_code: questions[qsId].code, finished: 'false'});
+	var gameId = db.insert('games', {game_code: quizzes[qsId].code, finished: 'false'});
 	var pChosen = db.query('players_chosen');
 	pChosen = randomizeArray(pChosen);
 	quiz.gameId = gameId;
@@ -500,7 +490,7 @@ var newQuiz = function(qsId) {
 
 };
 
-var randomizeArray = function(array) {
+const randomizeArray = (array) => {
 
 	var newArray = [];
 	for (var i = 0; i < array.length; i++) {
@@ -513,14 +503,14 @@ var randomizeArray = function(array) {
 	
 };
 
-var updateQuizInfo = function(qsId) {
+const updateQuizInfo = (qsId) => {
 
 	var currentPlayer = '';
 	if (typeof quiz.currentPlayer != 'undefined')
 		currentPlayer = '<div class="info-quiz" id="info-quiz-player">Odpowiada: <strong>' + getCurrentPlayerName(quiz.currentPlayer) + '</strong></div>';
 	var roundInfo = '<div class="info-quiz" id="info-quiz-round">Kolejka: <strong>' + quiz.round + '</strong></div>';
 	var questionsInfo = '<div class="info-quiz" id="info-quiz-questions-left">Pozostało pytań: <strong>' + questionsLeft() + '</strong> (kolejek: <strong>' + roundsLeft() + '</strong>)</div>';
-	var msg = '<div class="info-quiz" id="info-quiz-name">Tytuł: <strong>' + questions[qsId].title + '</strong></div>';
+	var msg = '<div class="info-quiz" id="info-quiz-name">Tytuł: <strong>' + quizzes[qsId].title + '</strong></div>';
 	if (!quiz.overtime) {
 		msg += roundInfo + questionsInfo;
 	} else {
@@ -539,7 +529,7 @@ var updateQuizInfo = function(qsId) {
 
 };
 
-var clearMainPage = function() {
+const clearMainPage = () => {
 	$('#tools-button').show();
 	$('#logo-image').show();
 	$('#quiz-start').show();
@@ -557,7 +547,7 @@ var clearMainPage = function() {
 
 };
 
-var showCancelButton = function() {
+const showCancelButton = () => {
 
 	if (quiz.overtime)
 		return false;
@@ -584,7 +574,7 @@ var showCancelButton = function() {
 
 };
 	
-var cancelAnswer = function() {
+const cancelAnswer = () => {
 
 	if (confirm('Na pewno usunąć ostatnio zdobyty punkt?')) {
 		var points = db.query('points', function(row) {
@@ -616,7 +606,7 @@ var cancelAnswer = function() {
 
 };
 
-var togglePointButtons = function(state) {
+const togglePointButtons = (state) => {
 
 	if (typeof state == 'undefined')
 		state = true;
@@ -638,7 +628,7 @@ var togglePointButtons = function(state) {
 
 };
 
-var getResults = function() {
+const getResults = () => {
 
 	var result = [];
 	var points = db.query('points', {id_game: quiz.gameId});
@@ -675,7 +665,7 @@ var getResults = function() {
 
 };
 
-var pointsToPlaces = function(result) {
+const pointsToPlaces = (result) => {
 
 	var places = {
 		1: [],
@@ -715,7 +705,7 @@ var pointsToPlaces = function(result) {
 
 };
 
-var isPodiumComplete = function(places) {
+const isPodiumComplete = (places) => {
 
 	result = true;
 	for (var i = 1; i < 4; i++) {
@@ -725,7 +715,7 @@ var isPodiumComplete = function(places) {
 
 };
 
-var showWinner = function(results) {
+const showWinner = (results) => {
 
 	debug('showWinner-- results:');
 	for (i = 1; i < 4; i++) {
@@ -762,20 +752,20 @@ var showWinner = function(results) {
 
 };
 
-var getNextPlayer = function() {
+const getNextPlayer = () => {
 
 	quiz.currentPlayer++;
 	return quiz.currentPlayer;
 
 };
 
-var getPlayers = function() {
+const getPlayers = () => {
 
 	return quiz.players;
 
 };
 
-var startOvertime = function(places) {
+const startOvertime = (places) => {
 
 	quiz.round++;
 	for (var i = 1; i < 4; i++) {
@@ -797,7 +787,7 @@ var startOvertime = function(places) {
 
 };
 
-var endOvertimeRound = function() {
+const endOvertimeRound = () => {
 
 	var places = Overtime.getPlaces(quiz.gameId);
 	var buffer = Overtime.getBuffer(quiz.gameId);
@@ -817,20 +807,20 @@ var endOvertimeRound = function() {
 
 };
 
-var cannotDoOvertime = function() {
+const cannotDoOvertime = () => {
 
 	Stats.gamePointsModal();
 	return error('Za mało pytań, by przeprowadzić dogrywkę', true);
 
 };
 
-var restoreOvertimeProgress = function() {
+const restoreOvertimeProgress = () => {
 
 	
 
 };
 
-var displayOvertimeMessage = function(game) {
+const displayOvertimeMessage = (game) => {
 
 	var places = Overtime.getPlaces(game);
 	var msg_place = ['', '', ''];

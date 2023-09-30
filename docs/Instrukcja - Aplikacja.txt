@@ -1,0 +1,20 @@
+Ważna rzecz - aplikacja zakłada, że w konkursie biorą udział co najmniej trzy osoby. Nie będzie krzyczał, jeśli dodasz mniej, ale na końcu dostanie jobla, bo nie będzie umiał ułożyć trzech osób na podium ;) Poprawię to w tak zwanym międzyczasie.
+
+Aby rozpocząć konkurs:
+
+1. Ikoną narzędzi przejść do Ustawień.
+2. Do "Poczekalni" dorzucić wszystkich graczy/drużyny.
+3. Przerzucić ich strzałką z "Poczekalni" do "Gracze" (nie pytaj, po co, kiedyś to miało sens i trzeba to wypiżdżyć ;) ).
+4. Wrócić na główną stronę i pacnąć "Start".
+
+Dodatkowe info:
+
+1. Po naciśnięciu "Odpowiedź" należy wybrać, ile punktów zdobywa dany gracz. Przycisk z łapką w dół oznacza zero punktów.
+2. Przycisk z włącznikiem światła w prawym-górnym roku pozwala zgasić światło, czasami pomaga przy ciemnych obrazkach ;)
+3. U góry ekranu widać aktualną kolejkę, kto odpowiada, ile pozostało pytań i (orientacyjnie) ile kolejek można jeszcze przeprowadzić. Warto na to zerkać, żeby nie skończyły się pytania w połowie kolejki ;).
+4. W każdej chwili można sprawdzić bieżącą punktację kombinacją Shift+p na klawiaturze.
+5. Po każdej pełnej rundzie pojawia się przycisk "Zakończ konkurs". Jego naciśnięcie kończy konkurs z bieżącą punktacją.
+6. W przypadku, gdy po zakończeniu konkursu ręcznie (nie polecam cisnąć pytań do końca ;) ) niektóre osoby zajmują miejsca ex-aequo, program wchodzi w tryb dogrywki z zasadą nagłej śmierci. Trochę głupio wtedy pokazuje, że w dogrywce biorą też udział osoby, które naprawdę nie muszą odpowiadać, bo wyświetla wszystkich, którzy pretendują do podium, nawet jeśli mają pewne miejsce. Poprawię to, ale nie ma co się przejmować, bo pytania będzie zadawał tylko tym, których miejsce na podium jest nieustalone.
+7. Jeśli w dogrywce lub normalnej grze skończą się pytania, zachowanie aplikacji będzie niedeterministyczne ;), dlatego warto zostawić zapas pytań.
+8. Aplikację w każdej chwili można odświeżyć jak zwyczajną stronę w przeglądarce. Nawet w trakcie konkursu jest w stanie odtworzyć stan gry.
+9. Gdyby wystąpił jakiś katastrofalny błąd, na który aplikacja nie jest gotowa (objawia się to zwykle białym ekranem lub ekranem bez przycisków), można aplikację "przywrócić do ustawień fabrycznych" poprzez otwarcie konsoli developerskiej (w Chrome na Windowsie to skrót Shift+Ctrl+J), wpisać: Admin.purge() i nacisnąć enter, po czym odświeżyć stronę.

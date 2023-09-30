@@ -1,13 +1,7 @@
-var db = new localStorageDB('konkursotron', localStorage);
+const db = new localStorageDB('konkursotron', localStorage);
 
-if (!db.tableExists('players')) {
+if (!db.tableExists('players'))
 	db.createTable('players', ['name']);
-	db.insert('players', {name: 'Nicolas Cage'});
-	db.insert('players', {name: 'Ness'});
-	db.insert('players', {name: 'Karol'});
-	db.insert('players', {name: 'Adzia'});
-	db.commit();
-}
 
 if (!db.tableExists('games'))
 	db.createTable('games', ['game_code', 'finished']);
@@ -29,9 +23,9 @@ if (!db.tableExists('overtime'))
 
 db.commit();
 
-var Admin = {
+const Admin = {
 
-	purge: function() {
+	purge: () => {
 		db.truncate('games');
 		db.truncate('players_games');
 		db.truncate('game_rounds');
@@ -40,7 +34,7 @@ var Admin = {
 		db.commit();		
 	},
 	
-	addPoints: function(teamId, points) {
+	addPoints: (teamId, points) => {
 		var players = db.query('players');
 		players = players.filter(function(value) {
 			return (typeof value.name != 'undefined' && value.ID == teamId);
@@ -60,7 +54,7 @@ var Admin = {
 		}
 	},
 	
-	getPlayerNames: function() {
+	getPlayerNames: () => {
 		var players = db.query('players');
 		var playersGame = getPlayers();
 		var names = [];
@@ -83,9 +77,9 @@ var Admin = {
 	}
 }
 
-var Overtime = {
+const Overtime = {
 
-	addOvertimePlayer: function(game, player, place, order) {
+	addOvertimePlayer: (game, player, place, order) => {
 
 		db.insert('overtime', {
 			id_game: game,
@@ -99,7 +93,7 @@ var Overtime = {
 
 	},
 
-	updateOvertimePlayer: function(game, player, change) {
+	updateOvertimePlayer: (game, player, change) => {
 
 		db.update('overtime', {id_game: game, id_player: player}, function(row) {
 			if (typeof change.place != 'undefined')
@@ -116,7 +110,7 @@ var Overtime = {
 
 	},
 
-	isOvertimeInProgress: function(game) {
+	isOvertimeInProgress: (game) => {
 
 		var overtime = db.query('overtime', function(row) {
 			if (row.id_game == game && row.state != 'out')
@@ -128,7 +122,7 @@ var Overtime = {
 
 	},
 
-	getMaxPlayerOrder: function(game) {
+	getMaxPlayerOrder: (game) => {
 
 		var players = this.getOvertimePlayers();
 		if (players.length)
@@ -138,7 +132,7 @@ var Overtime = {
 
 	},
 
-	getOvertimePlayers: function(game) {
+	getOvertimePlayers: (game) => {
 
 		/*var players = db.query('overtime', function(row) {
 			if (row.id_game == game && row.state == 'ok')
@@ -173,7 +167,7 @@ var Overtime = {
 
 	},
 
-	getAllOvertimePlayers: function(game) {
+	getAllOvertimePlayers: (game) => {
 
 		/*var players = db.query('overtime', function(row) {
 			if (row.id_game == game && row.state == 'ok')
@@ -208,7 +202,7 @@ var Overtime = {
 
 	},
 
-	getPlaces: function(game) {
+	getPlaces: (game) => {
 
 		var players = db.query('overtime', {
 			id_game: game,
@@ -222,7 +216,7 @@ var Overtime = {
 
 	},
 
-	getBuffer: function(game) {
+	getBuffer: (game) => {
 
 		var players = db.query('overtime', {
 			id_game: game,
@@ -236,7 +230,7 @@ var Overtime = {
 
 	},
 
-	fromBufferToPlaces: function(game, buffer, places) {
+	fromBufferToPlaces: (game, buffer, places) => {
 
 		for (var i = 0; i < buffer.length; i++) {
 			db.update('overtime', {
@@ -251,7 +245,7 @@ var Overtime = {
 
 	},
 
-	fromBufferToLowerLevel: function(game, buffer, count) {
+	fromBufferToLowerLevel: (game, buffer, count) => {
 
 		for (var i = 0; i < buffer.length; i++) {
 			if (parseInt(buffer[i].place) + count < 4) {
@@ -278,7 +272,7 @@ var Overtime = {
 
 	},
 
-	constructPlacesTemplate: function() {
+	constructPlacesTemplate: () => {
 
 		return {
 			1: [],
