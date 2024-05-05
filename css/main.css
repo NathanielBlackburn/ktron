@@ -15,6 +15,10 @@ body {
 	overflow: visible;
 }
 
+.carousel-item {
+	padding-top: 15px;
+}
+
 #media-container {
 	width: 650px;
 	margin: 0 auto;
@@ -36,7 +40,7 @@ body {
 }
 
 #quiz-list {
-	width: 90%;
+	width: 98%;
 }
 
 .quiz-info-dash {
@@ -51,10 +55,9 @@ body {
 
 #tools-button {
 	position: absolute;
-	top: 0;
-	right: 25px;
+	top: 15px;
+	right: 15px;
 	cursor: pointer;
-	margin-top: -50px;
 }
 
 #tools-button img {
@@ -64,7 +67,6 @@ body {
 
 div#main {
 	height: 80%;
-	padding-top: 60px;
 }
 	
 .center {
@@ -74,7 +76,7 @@ div#main {
 #settings-back {
 	position: absolute;
 	right: 30px;
-	top: 0;
+	top: 15px;
 }
 
 button.rounded {
@@ -172,7 +174,7 @@ select#questions-list {
 	width: 74%;
 }
 
-#error-message {
+/* #error-message {
 	padding: 20px;
 	width: 300px;
 	margin-left: -150px;
@@ -186,7 +188,7 @@ select#questions-list {
 
 .modal.fade.in {
 	top: 30%;
-}
+} */
 
 #questions-load {
 	padding: 10px;
@@ -346,6 +348,6 @@ a.error-tooltip {
 	margin-bottom: 15px;
 }
 
-span.hide {
+span.d-none {
 	color: transparent;
 }

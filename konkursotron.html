@@ -2,11 +2,13 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<link rel="stylesheet" href="libs/bootstrap/css/bootstrap.min.css" />
+	<!-- <link rel="stylesheet" href="libs/bootstrap/css/bootstrap.min.css" /> -->
+	<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" />
 	<link rel="stylesheet" href="css/main.css" />
 	<!-- <script type="text/javascript" src="libs/jquery/jquery-1.11.3.min.js"></script> -->
 	<script type="text/javascript" src="node_modules/jquery/dist/jquery.min.js"></script>
-	<script type="text/javascript" src="libs/bootstrap/js/bootstrap.min.js"></script>
+	<!-- <script type="text/javascript" src="libs/bootstrap/js/bootstrap.min.js"></script> -->
+	<script type="text/javascript" src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="node_modules/localstoragedb/localstoragedb.min.js"></script>
 	<script type="text/javascript" src="js/config.js"></script>
 	<script type="text/javascript" src="js/db.js"></script>
@@ -17,70 +19,77 @@
 </head>
 <body>
 
-	<div id="cinema-fade-modal" class="hide"></div>
-	<div id="cinema-fade" class="hide"></div>
+	<div id="cinema-fade-modal" class="d-none"></div>
+	<div id="cinema-fade" class="d-none"></div>
 
-	<div id="cinema-light" class="hide" onclick="lightSwitch()"></div>
+	<div id="cinema-light" class="d-none" onclick="lightSwitch()"></div>
 
-	<div id="error-message" class="modal hide fade">
-		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-		<p id="message"></p>
-	</div>
-
-	<!-- navbar -->
-	<div class="navbar navbar-fixed-top hide" id="navbar" data-visible="false">
-		<div class="navbar-inner">
-			<div class="container center">
-				<button class="btn rounded active page" id="settings" data-active="true" data-page="1" onclick="Page.menuButton('#settings');">Rozgrywka</button>
-				<button class="btn rounded page" id="stats" data-page="2" onclick="Page.menuButton('#stats');">Statystyki</button>
+	<div class="modal fade" id="error-message" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+		  <div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Błąd!</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
-			<div id="settings-back">
-				<button class="btn btn-danger" onclick="Page.start();">Powrót</button>
+			<div class="modal-body">
+				<p id="error-message-content"></p>
 			</div>
+		  </div>
 		</div>
 	</div>
+
+	<!-- <div id="error-message" class="modal d-none fade">
+		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+		<p id="message"></p>
+	</div> -->
+
+	<!-- navbar
+	<div class="navbar navbar-fixed-top" id="navbar" data-visible="false">
+		<div class="navbar-inner">
+		</div>
+	</div> -->
 
 	<!-- main body -->
 	<div id="main" class="carousel slide">
 		<div class="carousel-inner">
 
 			<!-- title page -->
-			<div class="item active" id="title-page">
-				<div id="tools-button" class="bordered-small hide">
+			<div class="carousel-item active" id="title-page">
+				<div id="tools-button" class="bordered-small">
 					<img src="images/tools.png" title="Ustawienia" onclick="Page.go(Page.currentSettingsPage);" />
 				</div>
 				<div class="container">
 					<div id="media-container">
-						<div id="quiz-info" class="hide"></div>
-						<div id="quiz-info-bottom" class="quiz-info-dash hide"></div>
-						<img class="hide" src="images/totoro.jpg" title="Totoro" id="logo-image" />
-						<div id="cat-text" class="hide"></div>
-						<div id="question-text" class="hide"></div>
-						<div id="image-container" class="hide"></div>
-						<div id="audio-container" class="hide"></div>
-						<div id="movie-container" class="hide"></div>
-						<div id="quiz-text-bottom" class="quiz-info-dash hide"></div>
+						<div id="quiz-info" class="d-none"></div>
+						<div id="quiz-info-bottom" class="quiz-info-dash d-none"></div>
+						<img src="images/totoro.jpg" title="Totoro" id="logo-image" />
+						<div id="cat-text" class="d-none"></div>
+						<div id="question-text" class="d-none"></div>
+						<div id="image-container" class="d-none"></div>
+						<div id="audio-container" class="d-none"></div>
+						<div id="movie-container" class="d-none"></div>
+						<div id="quiz-text-bottom" class="quiz-info-dash d-none"></div>
 					</div>
 					<div class="center" id="main-page-answer-buttons">
-						<button class="btn btn-large btn-primary hide" id="quiz-start" onclick="quizStart()">Start!</button>
-						<button class="btn btn-large btn-primary hide" id="get-answer" onclick="questionAnswered()">Odpowiedź</button>
-						<button class="btn btn-large btn-danger hide" id="not-answered" onclick="answeredIncorrectly()"><i class="icon-thumbs-down icon-white"></i></button>
+						<button class="btn btn-lg btn-primary" id="quiz-start" onclick="quizStart()">Start!</button>
+						<button class="btn btn-large btn-primary d-none" id="get-answer" onclick="questionAnswered()">Odpowiedź</button>
+						<button class="btn btn-large btn-danger d-none" id="not-answered" onclick="answeredIncorrectly()"><i class="icon-thumbs-down icon-white"></i></button>
 					</div>
 					<div class="center" id="main-page-points-buttons">
-						<button class="btn btn-large btn-success hide" id="answered-half" onclick="answeredCorrectly(0.5)"><i class="icon-thumbs-up icon-white"></i> 0.5</button>
-						<button class="btn btn-large btn-primary hide" id="answered-one" onclick="answeredCorrectly(1)"><i class="icon-thumbs-up icon-white"></i> 1</button>
-						<button class="btn btn-large btn-info hide" id="answered-onehalf" onclick="answeredCorrectly(1.5)"><i class="icon-thumbs-up icon-white"></i> 1.5</button>
-						<button class="btn btn-large btn-warning hide" id="answered-two" onclick="answeredCorrectly(2)"><i class="icon-thumbs-up icon-white"></i> 2</button>
+						<button class="btn btn-large btn-success d-none" id="answered-half" onclick="answeredCorrectly(0.5)"><i class="icon-thumbs-up icon-white"></i> 0.5</button>
+						<button class="btn btn-large btn-primary d-none" id="answered-one" onclick="answeredCorrectly(1)"><i class="icon-thumbs-up icon-white"></i> 1</button>
+						<button class="btn btn-large btn-info d-none" id="answered-onehalf" onclick="answeredCorrectly(1.5)"><i class="icon-thumbs-up icon-white"></i> 1.5</button>
+						<button class="btn btn-large btn-warning d-none" id="answered-two" onclick="answeredCorrectly(2)"><i class="icon-thumbs-up icon-white"></i> 2</button>
 					</div>
 					<div class="center" id="main-page-control-buttons">
-						<button class="btn btn-large btn-danger hide" id="end-quiz" onclick="endQuiz()">Zakończ konkurs</button>
-						<button class="btn btn-large btn-inverse hide" id="cancel-answer" onclick="cancelAnswer()">Anuluj punkt</button>
+						<button class="btn btn-large btn-danger d-none" id="end-quiz" onclick="endQuiz()">Zakończ konkurs</button>
+						<button class="btn btn-large btn-inverse d-none" id="cancel-answer" onclick="cancelAnswer()">Anuluj punkt</button>
 					</div>
 				</div>
 				
 				<div id="player-stats-modal-wrapper">
 				<div class="container" id="player-stats-modal-container">
-					<div class="bordered-medium hide" id="player-stats-modal">
+					<div class="bordered-medium d-none" id="player-stats-modal">
 						<button type="button" class="close" data-slide="up-modal">&times;</button>
 						<table class="table table-striped">
 							<caption>Zdobyte punkty</caption>
@@ -101,8 +110,11 @@
 			</div>
 
 			<!-- settings page -->
-			<div class="item" id="settings-page">
-
+			<div class="carousel-item" id="settings-page">
+				<div id="settings-back">
+					<button class="btn btn-danger" onclick="Page.start();">Powrót</button>
+				</div>
+	
 				<div class="container">
 
 					<div class="bordered-medium" id="player-choice">
@@ -128,7 +140,7 @@
 				
 					</div>
 
-					<div class="bordered-medium hide" id="player-add">
+					<div class="bordered-medium d-none" id="player-add">
 						<button type="button" class="close" data-slide="up">&times;</button>
 						<form class="form-inline" onsubmit="return false;">
 							<label for="player-add-name">Gracz/Nazwa drużyny</label>
@@ -154,7 +166,7 @@
 			</div>
 
 			<!-- stats page -->
-			<div class="item" id="stats-page">
+			<div class="carousel-item" id="stats-page">
 
 				<div class="container">
 
@@ -173,7 +185,7 @@
 						</table>
 					</div>
 
-					<div class="bordered-medium hide" id="player-stats">
+					<div class="bordered-medium d-none" id="player-stats">
 						<button type="button" class="close" data-slide="up">&times;</button>
 						<table class="table table-striped">
 							<caption>Statystyki indywidualne - <strong><span id="player-stats-name"></span></strong></caption>
@@ -189,7 +201,7 @@
 						</table>
 					</div>
 
-					<div class="bordered-medium hide" id="game-stats">
+					<div class="bordered-medium d-none" id="game-stats">
 						<button type="button" class="close" data-slide="up">&times;</button>
 						<table class="table table-striped">
 							<caption>Statystyki konkursowe - <strong><span id="game-stats-title"></span></strong></caption>

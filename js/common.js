@@ -121,17 +121,15 @@ const updateQuestionsDescription = (quiz) => {
 
 };
 
-const error = (msg, modal) => {
+const error = (msg, modal = false) => {
 
-	if (typeof modal == 'undefined')
-		modal = false;
 	if (!modal)
 		alert(msg);
 	else {
-		$('#error-message p#message').empty().text(msg);
-		$('#error-message').modal();
+		$('#error-message-content').empty().text(msg);
+		const myModal = new bootstrap.Modal('#error-message', {});
+		myModal.toggle();
 	}
-
 };
 
 const playerAdd = () => {
@@ -305,6 +303,20 @@ const pointsToWords = (number) => {
 		}
 	}
 
+};
+
+const toggleVis = (el) => {
+	if (!isVisible(el)) {
+		el.removeClas('d-none');
+		el.addClass('d-block');
+	} else {
+		el.removeClas('d-block');
+		el.addClass('d-none');
+	}
+};
+
+const isVisible = (el) => {
+	return !el.hasClass('d-none');
 };
 
 const isDisabled = (element) => {
