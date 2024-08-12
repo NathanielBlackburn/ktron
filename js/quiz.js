@@ -1,5 +1,10 @@
-﻿var quiz = {
-	round: 1
+﻿const Quiz = {
+
+	round: 1,
+
+	get inProgress() {
+		return typeof this.gameId != 'undefined' && this.gameId != '';
+	}
 };
 
 const quizStart = () => {
@@ -32,7 +37,6 @@ const quizStart = () => {
 };
 
 const checkQuizProgress = () => {
-
 	var rows = db.query('games', {finished: 'false'});
 	var rowsOvertime = db.query('games', {finished: 'overtime'});
 	if (rows.length) {
@@ -52,7 +56,6 @@ const checkQuizProgress = () => {
 			clearMainPage();
 		}
 	}
-
 };
 
 const restoreGameProgress = (game) => {
@@ -64,19 +67,16 @@ const restoreGameProgress = (game) => {
 	$('#tools-button').hide();
 	$('#quiz-start').hide();
 	$('#cinema-light').show();
-	quiz.gameId = game.ID;
-	for (var i = 0; i < quizzes.length; i++) {
-		if (quizzes[i].code == game.game_code) {
-			quiz.questions = quizzes[i].questions;
-			quiz.qsId = i;
-			quiz.code = quizzes[i].code;
-			quiz.buttons = quizzes[i].buttons;
-		}
-	}
-	for (var i = 0; i < quiz.questions.length; i++) {
-		quiz.questions[i].used = false;
-	}
-	var players = db.query('players_games', {id_game: quiz.gameId});
+	Quiz.gameId = game.ID;
+	const index = quizzes.findIndex((quiz) => quiz.code == game.game_code);
+	Quiz.questions = quizzes[index].questions;
+	Quiz.qsId = index;
+	Quiz.code = quizzes[index].code;
+	Quiz.buttons = quizzes[index].buttons;
+	Quiz.questions.forEach((question) => {
+		question.used = false;
+	});
+	var players = db.query('players_games', {id_game: Quiz.gameId});
 	players.sort(function(a, b) {
 		if (a.order < b.order)
 			return -1;
@@ -85,8 +85,8 @@ const restoreGameProgress = (game) => {
 		else if (a.order > b.order)
 			return 1;
 	});
-	quiz.players = players;
-	var rounds = db.query('game_rounds', {id_game: quiz.gameId});
+	Quiz.players = players;
+	var rounds = db.query('game_rounds', {id_game: Quiz.gameId});
 	rounds.sort(function(a, b) {
 		if (a.round < b.round)
 			return -1;
@@ -95,27 +95,27 @@ const restoreGameProgress = (game) => {
 		else if (a.round > b.round)
 			return 1;
 	});
-	for (var i = 0; i < rounds.length; i++) {
-		quiz.round = rounds[i].round;
-		var roundQuestions = rounds[i].questions.split('-');
-		quiz.currentPlayer = -1;
-		for (var j = 0; j < roundQuestions.length; j++) {
-			if (roundQuestions[j] != '') {
-				var answeredQuestionId = roundQuestions[j];
-				var answeredQuestion = findQuestion(answeredQuestionId);
-				quiz.currentPlayer++;
-				quiz.questions[answeredQuestion.pos].used = true;
+	rounds.forEach((round) => {
+		Quiz.round = round.round;
+		const roundQuestions = round.questions.split('-');
+		Quiz.currentPlayer = -1;
+		roundQuestions.forEach((roundQuestion) => {
+			if (roundQuestion != '') {
+				const answeredQuestionId = roundQuestion;
+				const answeredQuestion = findQuestion(answeredQuestionId);
+				Quiz.currentPlayer++;
+				Quiz.questions[answeredQuestion.pos].used = true;
 			}
-		}
-	}
+		});
+	});
 	
 	var roundAnswers = rounds[rounds.length - 1].answers.split('-');
-/*	quiz.currentPlayer = 0;
-	for (var i = 0; i < roundAnswers.length; i++) {
+/*	Quiz.currentPlayer = 0;
+	for (let i = 0; i < roundAnswers.length; i++) {
 		if (roundAnswers[i] != '') {
-			quiz.currentPlayer++;
-			if (quiz.currentPlayer > quiz.players.length - 1)
-				quiz.currentPlayer = 0;
+			Quiz.currentPlayer++;
+			if (Quiz.currentPlayer > Quiz.players.length - 1)
+				Quiz.currentPlayer = 0;
 		}
 	}*/
 	var roundQuestions = rounds[rounds.length - 1].questions.split('-');
@@ -124,19 +124,19 @@ const restoreGameProgress = (game) => {
 		while (unansweredQuestionId == '')
 			unansweredQuestionId = roundQuestions.pop();
 		var unansweredQuestion = findQuestion(unansweredQuestionId);
-		quiz.currentQuestion = unansweredQuestion.pos;
+		Quiz.currentQuestion = unansweredQuestion.pos;
 		showQuestion(unansweredQuestion.question, true);
 		showAnswer(unansweredQuestion.question, true);
-		updateQuizInfo(quiz.qsId);
+		updateQuizInfo(Quiz.qsId);
 		togglePointButtons();
 	} else {
 		var unansweredQuestionId = roundQuestions.pop();
 		while (unansweredQuestionId == '')
 			unansweredQuestionId = roundQuestions.pop();
 		var unansweredQuestion = findQuestion(unansweredQuestionId);
-		quiz.currentQuestion = unansweredQuestion.pos;
+		Quiz.currentQuestion = unansweredQuestion.pos;
 		showQuestion(unansweredQuestion.question, true);
-		updateQuizInfo(quiz.qsId);
+		updateQuizInfo(Quiz.qsId);
 		$('#get-answer').show();
 	}
 	if (canQuizBeFinishedBeforetime())
@@ -148,33 +148,31 @@ const restoreGameProgress = (game) => {
 };
 
 const findQuestion = (qId) => {
-
-	var found = null;
-	if (quiz.questions) {
-		for (var i = 0; i < quiz.questions.length; i++) {
-			if (quiz.questions[i].id == qId)
-				found = {
-					pos: i,
-					question: quiz.questions[i]
-				};
-		}
+	if (Quiz.questions) {
+		const index =  Quiz.questions.findIndex((question) => {
+			question.id == qId;
+		});
+		return {
+			pos: index,
+			question: Quiz.questions[index]
+		};
+	} else {
+		return undefined;
 	}
-	return found;
-
 };
 
 const startGameProgress = (qsId) => {
 
 	clearMainPage();
 	$('div#main').css('padding-top', '10px');
-	quiz.questions = quizzes[qsId].questions;
-	quiz.qsId = qsId;
-	quiz.code = quizzes[qsId].code;
-	quiz.buttons = quizzes[qsId].buttons;
-	for (var i = 0; i < quiz.questions.length; i++) {
-		quiz.questions[i].used = false;
-	}
-	newQuiz(quiz.qsId);
+	Quiz.questions = quizzes[qsId].questions;
+	Quiz.qsId = qsId;
+	Quiz.code = quizzes[qsId].code;
+	Quiz.buttons = quizzes[qsId].buttons;
+	Quiz.questions.forEach((question) => {
+		question.used = false;
+	});
+	newQuiz(Quiz.qsId);
 	$('#quiz-info').show();
 	$('.quiz-info-dash').show();
 	$('#get-question').show();
@@ -186,97 +184,78 @@ const startGameProgress = (qsId) => {
 };
 
 const nextQuestion = () => {
-
-	var newQuestion = Math.floor(Math.random() * quiz.questions.length);
-	while (quiz.questions[newQuestion].used)
-		newQuestion = Math.floor(Math.random() * quiz.questions.length);
-	showQuestion(quiz.questions[newQuestion]);
-	quiz.questions[newQuestion].used = true;
-	quiz.currentQuestion = newQuestion;
-	updateQuizInfo(quiz.qsId);
+	const unusedQuestions = Quiz.questions.filter(q => !q.used);
+	const newQuestion = unusedQuestions[Math.floor(Math.random() * unusedQuestions.length)];
+	showQuestion(newQuestion);
+	newQuestion.used = true;
+	Quiz.currentQuestion = newQuestion;
+	updateQuizInfo(Quiz.qsId);
 	$('#get-answer').show();
 	if (canQuizBeFinishedBeforetime())
 		$('#end-quiz').show();
 	else
 		$('#end-quiz').hide();
 	showCancelButton();
-
 };
 
 const questionAnswered = () => {
-
 	$('#get-answer').hide();
 	$('#end-quiz').hide();
 	togglePointButtons();
-	showAnswer(quiz.questions[quiz.currentQuestion]);
-
+	showAnswer(Quiz.questions[Quiz.currentQuestion]);
 };
 
 const answeredCorrectly = (points) => {
-
 	if (typeof points == 'undefined')
 		points = 1;
-	var question = quiz.questions[quiz.currentQuestion];
-	player = quiz.players[quiz.currentPlayer];
-	if (!quiz.overtime) {
-		db.insert('points', {id_player: player.id_player, id_game: quiz.gameId, id_question: question.id, points: points.toString()});
+	var question = Quiz.questions[Quiz.currentQuestion];
+	player = Quiz.players[Quiz.currentPlayer];
+	if (!Quiz.overtime) {
+		db.insert('points', {id_player: player.id_player, id_game: Quiz.gameId, id_question: question.id, points: points.toString()});
 		db.commit();
 	} else {
-		Overtime.updateOvertimePlayer(quiz.gameId, player.id_player, {state: 'ok', points: 1});
+		Overtime.updateOvertimePlayer(Quiz.gameId, player.id_player, {state: 'ok', points: 1});
 	}
 	endRound();
-
 };
 
 const answeredIncorrectly = () => {
-
-	var question = quiz.questions[quiz.currentQuestion];
-	player = quiz.players[quiz.currentPlayer];
-	if (!quiz.overtime) {
-		db.insert('points', {id_player: player.id_player, id_game: quiz.gameId, id_question: question.id, points: '0'});
+	const question = Quiz.questions[Quiz.currentQuestion];
+	player = Quiz.players[Quiz.currentPlayer];
+	if (!Quiz.overtime) {
+		db.insert('points', {id_player: player.id_player, id_game: Quiz.gameId, id_question: question.id, points: '0'});
 		db.commit();
 	} else {
-		Overtime.updateOvertimePlayer(quiz.gameId, player.id_player, {state: 'buffer'});
+		Overtime.updateOvertimePlayer(Quiz.gameId, player.id_player, {state: 'buffer'});
 	}
 	endRound();
-	
 };
 
 const questionsLeft = () => {
-
-	var result = quiz.questions.length;
-	for (var i = 0; i < quiz.questions.length; i++) {
-		if (quiz.questions[i].used)
-		result--;
-	}
-	return result;
-
+	return Quiz.questions.filter(q => !q.used).length;
 };
 
 const roundsLeft = () => {
-
-	return Math.floor((questionsLeft() + 1 + quiz.currentPlayer) / quiz.players.length) - 1;
-
+	return Math.floor((questionsLeft() + 1 + Quiz.currentPlayer) / Quiz.players.length) - 1;
 };
 
 const endRound = () => {
-
 	togglePointButtons(false);
-	quiz.currentPlayer = getNextPlayer();
-	if (quiz.currentPlayer > getPlayers().length - 1) {
-		if (quiz.overtime) {
+	Quiz.currentPlayer = getNextPlayer();
+	if (Quiz.currentPlayer > getPlayers().length - 1) {
+		if (Quiz.overtime) {
 			var places = endOvertimeRound();
 			if (isPodiumComplete(places))
 				return endQuiz(true, places);
 		}
-		quiz.currentPlayer = 0;
-		if (questionsLeft() < quiz.players.length) {
-			if (quiz.overtime)
+		Quiz.currentPlayer = 0;
+		if (questionsLeft() < Quiz.players.length) {
+			if (Quiz.overtime)
 				return endQuiz(true, places);
 			else
 				return endQuiz(true);
 		} else {
-			quiz.round++;
+			Quiz.round++;
 		}
 	}
 	showPewDiePie(true);
@@ -305,14 +284,13 @@ const showPewDiePie = (noPewds) => {
 };
 
 const canQuizBeFinishedBeforetime = () => {
-
-	return quiz.currentPlayer == 0 && quiz.round > 1 && $('#get-answer').is(':visible') && !quiz.overtime;
+	return Quiz.currentPlayer == 0 && Quiz.round > 1 && $('#get-answer').is(':visible') && !Quiz.overtime;
 
 };
 
 const endQuiz = (dontAsk, places) => {
 	if (dontAsk || (confirm('Czy na pewno zakończyć grę?') && confirm('Czy na pewno NA PEWNO zakończyć grę?'))) {
-		db.update('games', {ID: quiz.gameId}, function(row) {
+		db.update('games', {ID: Quiz.gameId}, (row) => {
 			row.finished = 'true';
 			return row;
 		});
@@ -333,8 +311,9 @@ const endQuiz = (dontAsk, places) => {
 		if (typeof places == 'undefined')
 			var places = pointsToPlaces(results);
 		var placesCount = 0;
-		for (var i = 1; i < 4; i++)
+		for (let i = 1; i < 4; i++) {
 			placesCount += places[i].length;
+		}
 		if (isPodiumComplete(places)) {
 			showWinner(places);
 		} else if (questionsLeft() < placesCount) {
@@ -364,17 +343,17 @@ const showQuestion = (question, noDatabase) => {
 		$('#cat-text').html('Kategoria: ' + question.category).show();
 	}
 	if (config.imageTypes.includes(question.questionType.toLowerCase().trim())) {
-		createImageContainer(quiz.code, question.id, question.questionType);
+		createImageContainer(Quiz.code, question.id, question.questionType);
 	} else if (question.questionType.toLowerCase().trim() == 'mp4') {
-		createMovieContainer(quiz.code, question.id);
+		createMovieContainer(Quiz.code, question.id);
 	} else if (question.questionType.toLowerCase().trim() == 'mp3') {
-		createAudioContainer(quiz.code, question.id);
+		createAudioContainer(Quiz.code, question.id);
 	}
 	if (!noDatabase) {
-		if (quiz.currentPlayer == 0) {
-			db.insert('game_rounds', {id_game: quiz.gameId, round: quiz.round, questions: '-', answers: '-'});
+		if (Quiz.currentPlayer == 0) {
+			db.insert('game_rounds', {id_game: Quiz.gameId, round: Quiz.round, questions: '-', answers: '-'});
 		}
-		db.update('game_rounds', {id_game: quiz.gameId, round: quiz.round}, function(row) {
+		db.update('game_rounds', {id_game: Quiz.gameId, round: Quiz.round}, (row) => {
 			row.questions += question.id + '-';
 			return row;
 		});
@@ -444,14 +423,14 @@ const showAnswer = (question, noDatabase) => {
 		$('#question-text').html(question.answerText);
 	$('#question-text').show();
 	if (config.imageTypes.includes(question.answerType)) {
-		createImageContainer(quiz.code, question.id, question.answerType, true);
+		createImageContainer(Quiz.code, question.id, question.answerType, true);
 	} else if (question.answerType == 'mp4') {
-		createMovieContainer(quiz.code, question.id, true);
+		createMovieContainer(Quiz.code, question.id, true);
 	} else if (question.answerType == 'mp3') {
-		createAudioContainer(quiz.code, question.id, true);
+		createAudioContainer(Quiz.code, question.id, true);
 	}
 	if (!noDatabase) {
-		db.update('game_rounds', {id_game: quiz.gameId, round: quiz.round}, function(row) {
+		db.update('game_rounds', {id_game: Quiz.gameId, round: Quiz.round}, (row) => {
 			row.answers += question.id + '-';
 			return row;
 		});
@@ -461,66 +440,54 @@ const showAnswer = (question, noDatabase) => {
 };
 
 const getCurrentPlayerName = (playerNumber) => {
-
-	var pChosen = db.query('players_games', {id_game: quiz.gameId});
-	if (pChosen.length) {
-		if (quiz.overtime)
-			var player = db.query('players', {ID: quiz.players[playerNumber].id_player});
-		else
-			var player = db.query('players', {ID: pChosen[playerNumber].id_player});
+	const participants = db.query('players_games', {id_game: Quiz.gameId});
+	if (participants.length) {
+		// TODO: Why the dichotomy?
+		playerId = (Quiz.overtime) ? Quiz.players[playerNumber].id_player : participants[playerNumber].id_player;
+		const player = db.query('players', {ID: playerId});
 		player = player.pop();
 		return player.name;
 	}
-	
-
 };
 
 const newQuiz = (qsId) => {
-
 	var gameId = db.insert('games', {game_code: quizzes[qsId].code, finished: 'false'});
 	var pChosen = db.query('players_chosen');
 	pChosen = randomizeArray(pChosen);
-	quiz.gameId = gameId;
-	quiz.players = pChosen;
-	for (var i = 0; i < pChosen.length; i++) {
-		db.insert('players_games', {id_game: gameId, id_player: pChosen[i].id_player, order: i+1});
-	}
-	quiz.currentPlayer = 0;
+	Quiz.gameId = gameId;
+	Quiz.players = pChosen;
+	pChosen.forEach((player) => {
+		db.insert('players_games', {id_game: gameId, id_player: player.id_player, order: i+1});
+	});
+	Quiz.currentPlayer = 0;
 	db.commit();
-
 };
 
 const randomizeArray = (array) => {
-
-	var newArray = [];
-	for (var i = 0; i < array.length; i++) {
-		var newPos = Math.floor(Math.random() * array.length);
-		while (typeof newArray[newPos] != 'undefined')
-			newPos = Math.floor(Math.random() * array.length);
-		newArray[newPos] = array[i];
+	for (let i = array.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[array[i], array[j]] = [array[j], array[i]];
 	}
-	return newArray;
-	
 };
 
 const updateQuizInfo = (qsId) => {
 
 	var currentPlayer = '';
-	if (typeof quiz.currentPlayer != 'undefined')
-		currentPlayer = '<div class="info-quiz" id="info-quiz-player">Odpowiada: <strong>' + getCurrentPlayerName(quiz.currentPlayer) + '</strong></div>';
-	var roundInfo = '<div class="info-quiz" id="info-quiz-round">Kolejka: <strong>' + quiz.round + '</strong></div>';
+	if (typeof Quiz.currentPlayer != 'undefined')
+		currentPlayer = '<div class="info-quiz" id="info-quiz-player">Odpowiada: <strong>' + getCurrentPlayerName(Quiz.currentPlayer) + '</strong></div>';
+	var roundInfo = '<div class="info-quiz" id="info-quiz-round">Kolejka: <strong>' + Quiz.round + '</strong></div>';
 	var questionsInfo = '<div class="info-quiz" id="info-quiz-questions-left">Pozostało pytań: <strong>' + questionsLeft() + '</strong> (kolejek: <strong>' + roundsLeft() + '</strong>)</div>';
-	var msg = '<div class="info-quiz" id="info-quiz-name">Tytuł: <strong>' + quizzes[qsId].title + '</strong></div>';
-	if (!quiz.overtime) {
+	let msg = '<div class="info-quiz" id="info-quiz-name">Tytuł: <strong>' + quizzes[qsId].title + '</strong></div>';
+	if (!Quiz.overtime) {
 		msg += roundInfo + questionsInfo;
 	} else {
-		var overtimeNames = '<div class="info-quiz" id="info-overtime-names">W dogrywce: ';
-		var overtimePlayers = Overtime.getAllOvertimePlayers(quiz.gameId);
-		for (var i = 0; i < overtimePlayers.length; i++) {
-			var playerName = db.query('players', {ID: overtimePlayers[i].id_player});
-			overtimeNames += '<strong>' + playerName[0].name + '</strong>, ';
-		}
-		overtimeNames = overtimeNames.substr(0, overtimeNames.length - 2) + '</div>';
+		let overtimeNames = '<div class="info-quiz" id="info-overtime-names">W dogrywce: ';
+		const overtimePlayers = Overtime.getAllOvertimePlayers(Quiz.gameId);
+		overtimePlayers.forEach((player) => {
+			const dbPlayers = db.query('players', {ID: player.id_player});
+			overtimeNames += '<strong>' + dbPlayers[0].name + '</strong>, ';
+		});
+		overtimeNames = overtimeNames.slice(0, -2) + '</div>';
 		msg += overtimeNames;
 	}
 		
@@ -548,37 +515,25 @@ const clearMainPage = () => {
 };
 
 const showCancelButton = () => {
-
-	if (quiz.overtime)
-		return false;
-	var canBeShown = false;
-	if (quiz.currentPlayer != 0 || quiz.round > 1) {
-		var points = db.query('points', {'id_game': quiz.gameId});
-		var pointsLength = points.length;
-		for (var i = 0; i < pointsLength; i++) {
-			var pointEntry = points.pop();
-			pointEntry.points = parseFloat(pointEntry.points);
-			if (pointEntry.points > 0) {
-				canBeShown = true;
-				break;
-			} else if (pointEntry.points == 0 && pointEntry.cancelled == true) {
-				canBeShown = false;
-				break;
-			}
-		}
+	if (Quiz.overtime || (Quiz.currentPlayer == 0 && Quiz.round == 1)) {
+		return;
 	}
-	if (canBeShown)
-		$('#cancel-answer').show();
-	else
-		$('#cancel-answer').hide();
 
+	const points = db.query('points', {'id_game': Quiz.gameId});
+	const canBeShown = points.any((pointEntry) => {
+		parseInt(pointEntry.points) > 0;
+	});
+	if (canBeShown) {
+		$('#cancel-answer').show();
+	} else {
+		$('#cancel-answer').hide();
+	}
 };
 	
 const cancelAnswer = () => {
-
 	if (confirm('Na pewno usunąć ostatnio zdobyty punkt?')) {
-		var points = db.query('points', function(row) {
-			if (row.id_game == quiz.gameId && parseFloat(row.points) > 0)
+		var points = db.query('points', (row) => {
+			if (row.id_game == Quiz.gameId && parseFloat(row.points) > 0)
 				return true;
 			else
 				return false;
@@ -607,14 +562,13 @@ const cancelAnswer = () => {
 };
 
 const togglePointButtons = (state) => {
-
 	if (typeof state == 'undefined')
 		state = true;
 	if (state) {
 		$('#answered-one').show();
-		if (typeof quiz.overtime == 'undefined' || !quiz.overtime) {
-			for (i = 0; i < quiz.buttons.length; i++) {
-				$('#' + quiz.buttons[i]).show();
+		if (typeof Quiz.overtime == 'undefined' || !Quiz.overtime) {
+			for (i = 0; i < Quiz.buttons.length; i++) {
+				$('#' + Quiz.buttons[i]).show();
 			}
 		}
 		$('#not-answered').show();
@@ -625,15 +579,13 @@ const togglePointButtons = (state) => {
 		$('#answered-onehalf').hide();
 		$('#not-answered').hide();
 	}
-
 };
 
 const getResults = () => {
-
 	var result = [];
-	var points = db.query('points', {id_game: quiz.gameId});
+	var points = db.query('points', {id_game: Quiz.gameId});
 	var players = db.query('players');
-	var playersGames = db.query('players_games', {id_game: quiz.gameId});
+	var playersGames = db.query('players_games', {id_game: Quiz.gameId});
 	var playersParticipating = [];
 	for (var i = 0; i < players.length; i++) {
 		for (var j = 0; j < playersGames.length; j++) {
@@ -706,17 +658,14 @@ const pointsToPlaces = (result) => {
 };
 
 const isPodiumComplete = (places) => {
-
 	result = true;
-	for (var i = 1; i < 4; i++) {
+	for (let i = 1; i < 4; i++) {
 		result = result && places[i].length == 1;
 	}
 	return result;
-
 };
 
 const showWinner = (results) => {
-
 	debug('showWinner-- results:');
 	for (i = 1; i < 4; i++) {
 		debug('Place number: ' + i + ' has ' + results[i][0].points);
@@ -729,7 +678,7 @@ const showWinner = (results) => {
 			if (results[i][0].points && parseFloat(results[i][0].points) > 0) {
 				results[i][0].overtimePoints = ' (+' + parseFloat(results[i][0].points) + ')';
 			}
-			results[i][0].points = Stats.getPlayersPointsInGame(results[i][0].id_player, quiz.gameId);
+			results[i][0].points = Stats.getPlayersPointsInGame(results[i][0].id_player, Quiz.gameId);
 		}
 	}
 	for (var i = 1; i < 4; i++) {
@@ -749,61 +698,56 @@ const showWinner = (results) => {
 	mp3.src = 'images/victory.mp3';
 	$('#quiz-info').append(mp3);
 	mp3.play();
-
 };
 
 const getNextPlayer = () => {
-
-	quiz.currentPlayer++;
-	return quiz.currentPlayer;
+	Quiz.currentPlayer++;
+	return Quiz.currentPlayer;
 
 };
 
 const getPlayers = () => {
-
-	return quiz.players;
-
+	return Quiz.players;
 };
 
 const startOvertime = (places) => {
-
-	quiz.round++;
+	Quiz.round++;
 	for (var i = 1; i < 4; i++) {
 		if (places[i].length > 0)
 			for (var j = 0; j < places[i].length; j++) {
-				var playerOrder = Overtime.getMaxPlayerOrder(quiz.gameId);
-				Overtime.addOvertimePlayer(quiz.gameId, places[i][j].ID, i, playerOrder + 1);
+				var playerOrder = Overtime.getMaxPlayerOrder(Quiz.gameId);
+				Overtime.addOvertimePlayer(Quiz.gameId, places[i][j].ID, i, playerOrder + 1);
 			}
 	}
-	quiz.players = Overtime.getOvertimePlayers(quiz.gameId);
-	quiz.currentPlayer = 0;
-	quiz.overtime = true;
-	db.update('games', {ID: quiz.gameId}, function(row) {
+	Quiz.players = Overtime.getOvertimePlayers(Quiz.gameId);
+	Quiz.currentPlayer = 0;
+	Quiz.overtime = true;
+	db.update('games', {ID: Quiz.gameId}, (row) => {
 		row.finished = 'overtime';
 		return row;
 	});
 	showPewDiePie(true);
-	displayOvertimeMessage(quiz.gameId);
+	displayOvertimeMessage(Quiz.gameId);
 
 };
 
 const endOvertimeRound = () => {
 
-	var places = Overtime.getPlaces(quiz.gameId);
-	var buffer = Overtime.getBuffer(quiz.gameId);
+	var places = Overtime.getPlaces(Quiz.gameId);
+	var buffer = Overtime.getBuffer(Quiz.gameId);
 	for (var i = 3; i > 0; i--) {
 		if (places[i].length == 0) {
 			if (buffer[i].length > 0) {
-				Overtime.fromBufferToPlaces(quiz.gameId, buffer[i]);
+				Overtime.fromBufferToPlaces(Quiz.gameId, buffer[i]);
 			}
 		} else {
 			if (buffer[i].length > 0) {
-				Overtime.fromBufferToLowerLevel(quiz.gameId, buffer[i], places[i].length);
+				Overtime.fromBufferToLowerLevel(Quiz.gameId, buffer[i], places[i].length);
 			}
 		}
 	}
-	quiz.players = Overtime.getOvertimePlayers(quiz.gameId);
-	return Overtime.getPlaces(quiz.gameId);
+	Quiz.players = Overtime.getOvertimePlayers(Quiz.gameId);
+	return Overtime.getPlaces(Quiz.gameId);
 
 };
 
@@ -824,9 +768,9 @@ const displayOvertimeMessage = (game) => {
 
 	var places = Overtime.getPlaces(game);
 	var msg_place = ['', '', ''];
-	for (var i = 1; i < 4; i++) {
+	for (let i = 1; i < 4; i++) {
 		if (places[i].length > 1) {
-			for (var j = 0; j < places[i].length; j++) {
+			for (let j = 0; j < places[i].length; j++) {
 				if (msg_place[i - 1] == '') {
 					switch (i) {
 						case 1:

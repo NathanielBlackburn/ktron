@@ -106,7 +106,7 @@ const fillDataNodes = (node, clear = false) => {
 			$(list).off('change');
 			$(list).on('change', (event) => {
 				const code = $(event.target).find(':selected').first().data('quiz-code');
-				updateQuestionsDescription(KTron.quizzes.find(quiz => quiz.code == code));
+				updateQuestionsDescription(KTron.quizzes.find(quiz => (Quiz.code == code)));
 			});
 			break;
 		}
@@ -118,7 +118,6 @@ const updateQuestionsDescription = (quiz) => {
 	$('#question-set-title').html('<strong>Tytuł: </strong>  <span class="content">' + quiz.title + '</span>');
 	$('#question-set-author').html('<strong>Autor: </strong>  <span class="content">' + quiz.author + '</span>');
 	$('#question-set-count').html('<strong>Liczba pytań: </strong>  <span class="content">' + quiz.questions.length + '</span>');
-
 };
 
 const error = (msg, modal = false) => {
@@ -156,16 +155,16 @@ const playerAdd = () => {
 const playerRemove = () => {
 
 	var selected = $('#all-players option:selected');
-	if (selected.length)
+	if (selected.length) {
 		if (confirm('Na pewno usunąć?')) {
-			for (var i = 0; i < selected.length; i++) {
-				db.deleteRows('players', {ID: selected[i].getAttribute('value')});
+			selected.forEach((player) => {
+				db.deleteRows('players', {ID: player.getAttribute('value')});
 				db.commit();
-			}
+			});
 			fillDataNodes('players', true);
 			updateQuestionsDescription($('#questions-choice').find(':selected')[0].getAttribute('value'));
 		}
-
+	}
 };
 
 const playerMoveToLeft = (playerId) => {
@@ -252,11 +251,15 @@ const loadQuestions = () => {
 
 };
 
-const bindKeypress = () => {
+const bindKeypress = () => {;
 
-	$(document).keypress(function(event) {
-		if (event.which == 80 && event.shiftKey && typeof quiz.gameId != 'undefined') {
+	$(document).on('keypress', (event) => {
+		if (event.shiftKey && event.code == 'KeyP' && Quiz.inProgress) {
 			Stats.gamePointsModal();
+		} else if (event.shiftKey && event.altKey && event.code == 'KeyR') {
+			if (confirm('Ar ju siur?')) {
+				Admin.purge();
+			}
 		}
 	});
 

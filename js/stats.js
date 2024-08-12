@@ -197,11 +197,11 @@ const Stats = {
 	gamePointsModal: () => {
 
 		var players = db.query('players');
-		var points = db.query('points', {id_game: quiz.gameId});
+		var points = db.query('points', {id_game: Quiz.gameId});
 		if (points.length == 0)
 			return error('Jeszcze nie zdobyto żadnych punktów.', true);
-		var overtimePoints = db.query('overtime', {id_game: quiz.gameId});
-		var playersGames = db.query('players_games', {id_game: quiz.gameId});
+		var overtimePoints = db.query('overtime', {id_game: Quiz.gameId});
+		var playersGames = db.query('players_games', {id_game: Quiz.gameId});
 		var playersParticipating = [];
 		for (var i = 0; i < players.length; i++) {
 			for (var j = 0; j < playersGames.length; j++) {

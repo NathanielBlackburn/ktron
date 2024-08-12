@@ -39,10 +39,10 @@ const Admin = {
 		players = players.filter(function(value) {
 			return (typeof value.name != 'undefined' && value.ID == teamId);
 		});
-		if (players.length && quiz.gameId) {
+		if (players.length && Quiz.inProgress) {
 			db.insert('points', {
 				cancelled: null,
-				id_game: quiz.gameId,
+				id_game: Quiz.gameId,
 				id_player: players.pop().ID,
 				id_question: Math.floor((Math.random() + 1) * Math.pow(10, 7)),
 				points: points
@@ -55,23 +55,18 @@ const Admin = {
 	},
 	
 	getPlayerNames: () => {
-		var players = db.query('players');
-		var playersGame = getPlayers();
-		var names = [];
-		if (quiz.gameId) {
-			players = players.filter(function(value) {
-				var found = false;
-				for (var i = 0; i < playersGame.length; i++) {
-					if (playersGame[i].id_player == value.ID) {
-						found = true;
-						break;
-					}
-				}
-				return found;
+		let players = db.query('players');
+		const playersGame = getPlayers();
+		const names = [];
+		if (Quiz.inProgress) {
+			players = players.filter((player) => {
+				return playersGame.some((gamePlayer) => {
+					gamePlayer.id_player == player.ID;
+				})
 			});
-			for (var i = 0; i < players.length; i++) {
-				names.push(players[i].ID + ' ' + players[i].name);
-			}
+			players.forEach((player) => {
+				names.push(player.ID + ' ' + player.name);
+			});
 		}
 		console.log(names.length ? names.join('\n') : false);
 	}
@@ -153,14 +148,14 @@ const Overtime = {
 		var buffer = this.getBuffer(game);
 		debug(places);
 		debug(buffer);
-		for (var i = 1; i < 4; i++) {
+		for (let i = 1; i < 4; i++) {
 			if (places[i].length > 1)
-				for (var j = 0; j < places[i].length; j++)
+				for (let j = 0; j < places[i].length; j++)
 					players.push(places[i][j]);
 		}
-		for (var i = 1; i < 4; i++) {
+		for (let i = 1; i < 4; i++) {
 			if (buffer[i].length > 1)
-				for (var j = 0; j < buffer[i].length; j++)
+				for (let j = 0; j < buffer[i].length; j++)
 					players.push(buffer[i][j]);
 		}
 		return players;
@@ -188,14 +183,14 @@ const Overtime = {
 		var buffer = this.getBuffer(game);
 		debug(places);
 		debug(buffer);
-		for (var i = 1; i < 4; i++) {
+		for (let i = 1; i < 4; i++) {
 			if (places[i].length > 0)
-				for (var j = 0; j < places[i].length; j++)
+				for (let j = 0; j < places[i].length; j++)
 					players.push(places[i][j]);
 		}
-		for (var i = 1; i < 4; i++) {
+		for (let i = 1; i < 4; i++) {
 			if (buffer[i].length > 0)
-				for (var j = 0; j < buffer[i].length; j++)
+				for (let j = 0; j < buffer[i].length; j++)
 					players.push(buffer[i][j]);
 		}
 		return players;
@@ -203,83 +198,74 @@ const Overtime = {
 	},
 
 	getPlaces: (game) => {
-
-		var players = db.query('overtime', {
+		const players = db.query('overtime', {
 			id_game: game,
 			state: 'ok'
 		});
-		var places = this.constructPlacesTemplate();
-		for (var i = 0; i < players.length; i++) {
-			places[players[i].place].push(players[i]);
-		}
+		const places = this.constructPlacesTemplate();
+		players.forEach((player) => {
+			places[player.place].push(player);
+		});
 		return places;
-
 	},
 
 	getBuffer: (game) => {
-
-		var players = db.query('overtime', {
+		const players = db.query('overtime', {
 			id_game: game,
 			state: 'buffer'
 		});
-		var buffer = this.constructPlacesTemplate();
-		for (var i = 0; i < players.length; i++) {
-			buffer[players[i].place].push(players[i]);
-		}
+		const buffer = this.constructPlacesTemplate();
+		players.forEach((player) => {
+			buffer[player.place].push(player);
+		});
 		return buffer;
-
 	},
 
-	fromBufferToPlaces: (game, buffer, places) => {
-
-		for (var i = 0; i < buffer.length; i++) {
+	fromBufferToPlaces: (game, buffer) => {
+		buffer.forEach((player) => {
 			db.update('overtime', {
 				id_game: game,
-				id_player: buffer[i].id_player
-			}, function(row) {
+				id_player: player.id_player
+			}, (row) => {
 				row.state = 'ok';
 				return row;
 			});
-		}
+		});
 		db.commit();
 
 	},
 
 	fromBufferToLowerLevel: (game, buffer, count) => {
-
-		for (var i = 0; i < buffer.length; i++) {
-			if (parseInt(buffer[i].place) + count < 4) {
+		buffer.forEach((player) => {
+			if (parseInt(player.place) + count < 4) {
 				db.update('overtime', {
 					id_game: game,
-					id_player: buffer[i].id_player
-				}, function(row) {
-					row.place = parseInt(buffer[i].place) + count;
+					id_player: player.id_player
+				}, (row) => {
+					row.place = parseInt(player.place) + count;
 					row.state = 'ok';
 					return row;
 				});
 			} else {
 				db.update('overtime', {
 					id_game: game,
-					id_player: buffer[i].id_player
-				}, function(row) {
+					id_player: player.id_player
+				}, (row) => {
 					row.place = 4;
 					row.state = 'out';
 					return row;
 				});
 			}
-		}
+		});
 		db.commit();
-
 	},
 
 	constructPlacesTemplate: () => {
-
 		return {
 			1: [],
 			2: [],
 			3: []
 		};
-
 	}
 
 };
