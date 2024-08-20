@@ -1,7 +1,6 @@
-﻿const Quiz = {
-
+const Quiz = {
 	round: 1,
-	imageTypes: ['jpg', 'png', 'webp', 'gif', 'pre:question', 'pre:answer'],
+	imageTypes: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pre:question', 'pre:answer'],
 	audioTypes: ['mp3', 'm4a'],
 	videoTypes: ['mp4'],
 	settings: new Settings(),
