@@ -1,271 +1,232 @@
-const db = new localStorageDB('konkursotron', localStorage);
+const DB = {
 
-if (!db.tableExists('players'))
-	db.createTable('players', ['name']);
+	dBase: new localStorageDB('konkursotron', localStorage),
+	version: '3.0',
 
-if (!db.tableExists('games'))
-	db.createTable('games', ['game_code', 'finished']);
+	Players: 'players',
+	Games: 'games',
+	Rounds: 'rounds',
+	Questions: 'questions',
+	Points: 'points',
+	Overtime: 'overtime',
+	DatabaseVersion: 'database_version',
 
-if (!db.tableExists('players_games'))
-	db.createTable('players_games', ['id_player', 'id_game', 'order']);
-
-if (!db.tableExists('players_chosen'))
-	db.createTable('players_chosen', ['id_player']);
-
-if (!db.tableExists('game_rounds'))
-	db.createTable('game_rounds', ['id_game', 'round', 'questions', 'answers']);
-
-if (!db.tableExists('points'))
-	db.createTable('points', ['id_player', 'points', 'id_game', 'id_question', 'cancelled']);
-
-if (!db.tableExists('overtime'))
-	db.createTable('overtime', ['id_game', 'id_player', 'place', 'state', 'order', 'points']);
-
-db.commit();
-
-const Admin = {
-
-	purge: () => {
-		db.truncate('games');
-		db.truncate('players_games');
-		db.truncate('game_rounds');
-		db.truncate('points');
-		db.truncate('overtime');
-		db.commit();		
+	createDB: function() {
+		this.createTableIfNotExists(this.Players, ['name', 'order']);
+		this.createTableIfNotExists(this.Games, ['game_code', 'status']);
+		this.createTableIfNotExists(this.Rounds, ['round']);
+		this.createTableIfNotExists(this.Questions, ['id_question', 'id_player']);
+		this.createTableIfNotExists(this.Points, ['id_player', 'points', 'cancelled', 'overtime']);
+		this.createTableIfNotExists(this.Overtime, ['data']);
+		this.createTableIfNotExists(this.DatabaseVersion, ['version']);
+		this.dBase.insert(this.DatabaseVersion, {version: this.version});
+		this.dBase.commit();	
 	},
-	
-	addPoints: (teamId, points) => {
-		var players = db.query('players');
-		players = players.filter(function(value) {
-			return (typeof value.name != 'undefined' && value.ID == teamId);
-		});
-		if (players.length && Quiz.inProgress) {
-			db.insert('points', {
-				cancelled: null,
-				id_game: Quiz.gameId,
-				id_player: players.pop().ID,
-				id_question: Math.floor((Math.random() + 1) * Math.pow(10, 7)),
-				points: points
+
+	createTableIfNotExists: function(name, fields) {
+		if (!this.dBase.tableExists(name)) {
+			this.dBase.createTable(name, fields);
+		}
+	},
+
+	update: function() {
+		if (!this.dBase.tableExists(this.DatabaseVersion)) {
+			this.totalReset(false);
+		} else {
+			const version = this.dBase.queryAll(this.DatabaseVersion)[0].version;
+			if (version != this.version) {
+				this.totalReset(false);
+			}
+		}
+	},
+
+	createPlayer: function(name) {
+		this.dBase.insert(this.Players, {name: name});
+		this.dBase.commit();
+	},
+
+	removePlayer: function(playerId) {
+		this.dBase.deleteRows(this.Players, {ID: playerId});
+		this.dBase.commit();
+	},
+
+	removeAllPlayers: function() {
+		this.dBase.truncate(this.Players);
+		this.dBase.commit();
+	},
+
+	fetchPlayerByName: function(name) {
+		const results = this.dBase.queryAll(this.Players, {query: {name: name}});
+		return results.length ? results[0] : null;
+	},
+
+	fetchPlayer: function(playerId) {
+		const results = this.dBase.queryAll(this.Players, {query: {ID: playerId}});
+		return results.length ? results[0] : null;
+	},
+
+	fetchAllPlayers: function() {
+		return this.dBase.queryAll(this.Players, {sort: [['order', 'ASC']]});
+	},
+
+	createGame: function(quizCode) {
+		this.purge(false);
+		this.dBase.insert(this.Games, {game_code: quizCode, status: 'unfinished'});
+		const players = randomizeArray(this.dBase.queryAll(this.Players));
+		players.forEach((player, pos) => {
+			player.order = pos;
+			this.dBase.update(this.Players, {ID: player.ID}, (row) => {
+				row.order = pos;
+				return row;
 			});
-			db.commit();
+		});
+		this.dBase.commit();
+		return players;
+	},
+
+	fetchUnfinishedGame: function() {
+		const result = this.dBase.queryAll(this.Games, {query: (row) => row.status != 'finished'});
+		return (result.length) ? result.slice(-1)[0] : null;
+	},
+
+	startRound: function(round) {
+		this.dBase.insert(this.Rounds, {round: round});
+		this.dBase.commit();
+	},
+
+	fetchLastRound: function() {
+		return this.dBase.queryAll(this.Rounds, {sort: [['round', 'DESC']]})[0].round;
+	},
+
+	useUpQuestion: function(question, player) {
+		this.dBase.insert(this.Questions, {id_question: question.id, id_player: player.ID});
+		this.dBase.commit();
+	},
+
+	restoreLastQuestion: function() {
+		const lastUsedQuestion = this.fetchLastQuestion();
+		if (lastUsedQuestion) {
+			this.dBase.deleteRows(this.Questions, {ID: lastUsedQuestion.ID});
+			this.dBase.commit();
+		}
+		return lastUsedQuestion ? lastUsedQuestion.id_question : null;
+	},
+
+	useUpAllRemainingQuestions(questions) {
+		questions
+			.filter((question) => !question.used)
+			.forEach((question) => {
+				this.useUpQuestion(question, 0);
+			});
+	},
+
+	fetchUsedQuestions: function() {
+		const questions = this.dBase.queryAll(this.Questions);
+		return (questions.length) ? questions.map((question) => question.id_question) : null;
+	},
+
+	fetchLastQuestion: function() {
+		const questions = this.dBase.queryAll(this.Questions, {sort: [['ID', 'ASC']]});
+		return (questions.length) ? questions.slice(-1)[0] : null;
+	},
+
+	addPoints: function(player, points, overtime = false) {
+		this.dBase.insert(this.Points, {id_player: player.ID, points: points.toString(), overtime: overtime});
+		this.dBase.commit();
+	},
+
+	fetchAllPoints: function() {
+		return this.dBase.queryAll(this.Points);
+	},
+
+	fetchPlayerPoints: function(playerId, overtime = false) {
+		const points = this.dBase.queryAll(this.Points, {query: {id_player: playerId, overtime: overtime}});
+		return points.reduce((sum, pointsEntry) => {
+			return sum + parseFloat(pointsEntry.points);
+		}, 0);
+	},
+
+	canCancelPoints: function() {
+		const pointsEntries = this.dBase.queryAll(this.Points, {sort: [['ID', 'DESC']]});
+		return pointsEntries.length && !pointsEntries[0].cancelled && parseFloat(pointsEntries[0].points) > 0;
+	},
+
+	cancelPoints: function() {
+		if (this.canCancelPoints()) {
+			const pointsEntries = this.dBase.queryAll(this.Points, {sort: [['ID', 'DESC']]});
+			this.dBase.update(this.Points, {ID: pointsEntries[0].ID}, (row) => {
+				row.points = '0';
+				row.cancelled = true;
+				return row;
+			});
+			this.dBase.commit();
 			return true;
 		} else {
 			return false;
 		}
 	},
-	
-	getPlayerNames: () => {
-		let players = db.query('players');
-		const playersGame = getPlayers();
-		const names = [];
-		if (Quiz.inProgress) {
-			players = players.filter((player) => {
-				return playersGame.some((gamePlayer) => {
-					gamePlayer.id_player == player.ID;
-				})
-			});
-			players.forEach((player) => {
-				names.push(player.ID + ' ' + player.name);
-			});
-		}
-		console.log(names.length ? names.join('\n') : false);
-	}
-}
 
-const Overtime = {
-
-	addOvertimePlayer: (game, player, place, order) => {
-
-		db.insert('overtime', {
-			id_game: game,
-			id_player: player,
-			place: place,
-			state: 'ok',
-			order: order.toString(),
-			points: '0'
-		});
-		db.commit();
-
-	},
-
-	updateOvertimePlayer: (game, player, change) => {
-
-		db.update('overtime', {id_game: game, id_player: player}, function(row) {
-			if (typeof change.place != 'undefined')
-				row.place = change.place;
-			if (typeof change.state != 'undefined')
-				row.state = change.state;
-			if (typeof change.points != 'undefined') {
-				var currentPoints = parseFloat(row.points);
-				row.points = currentPoints + change.points;
-			}
+	endQuiz: function() {
+		this.dBase.update(this.Games, {ID: 1}, (row) => {
+			row.status = 'finished';
 			return row;
 		});
-		db.commit();
-
+		this.dBase.commit();
 	},
 
-	isOvertimeInProgress: (game) => {
-
-		var overtime = db.query('overtime', function(row) {
-			if (row.id_game == game && row.state != 'out')
-				return true;
-			else
-				return false;
+	startOvertime: function(overtime) {
+		this.dBase.update(this.Games, {ID: 1}, (row) => {
+			row.status = 'overtime';
+			return row;
 		});
-		return overtime.length > 0;
-
+		this.dBase.commit();
+		this.saveOvertime(overtime);
 	},
 
-	getMaxPlayerOrder: (game) => {
-
-		var players = this.getOvertimePlayers();
-		if (players.length)
-			return parseInt(players.pop().order);
-		else
-			return 0;
-
+	saveOvertime: function(overtime) {
+		this.dBase.insertOrUpdate(this.Overtime, {ID: 1}, {data: overtime.stringify()});
+		this.dBase.commit();
 	},
 
-	getOvertimePlayers: (game) => {
+	fetchOvertime: function() {
+		const results = this.dBase.queryAll(this.Overtime);
+		return (results.length) ? Overtime.initFromJSON(results.slice(-1)[0].data) : null;
+	},
 
-		/*var players = db.query('overtime', function(row) {
-			if (row.id_game == game && row.state == 'ok')
-				return true;
-			else
-				return false;
-		});
-		players.sort(function(a, b) {
-			if (a.order < b.order)
-				return -1;
-			else if (a.order == b.order)
-				return 0;
-			else if (a.order > b.order)
-				return 1;
-		});*/
-		var players = [];
-		var places = this.getPlaces(game);
-		var buffer = this.getBuffer(game);
-		debug(places);
-		debug(buffer);
-		for (let i = 1; i < 4; i++) {
-			if (places[i].length > 1)
-				for (let j = 0; j < places[i].length; j++)
-					players.push(places[i][j]);
+	purge: function(reload = true) {
+		this.dBase.truncate(this.Games);
+		this.dBase.truncate(this.Rounds);
+		this.dBase.truncate(this.Questions);
+		this.dBase.truncate(this.Points);
+		this.dBase.truncate(this.Overtime);
+		this.dBase.commit();
+		if (reload) {
+			window.location.reload();
 		}
-		for (let i = 1; i < 4; i++) {
-			if (buffer[i].length > 1)
-				for (let j = 0; j < buffer[i].length; j++)
-					players.push(buffer[i][j]);
+	},
+
+	totalReset: function(reload = true) {
+		this.dBase.drop();
+		this.dBase.commit();
+		this.dBase = new localStorageDB('konkursotron', window.localStorage);
+		this.createDB();
+		if (reload) {
+			window.location.reload();
 		}
-		return players;
-
-	},
-
-	getAllOvertimePlayers: (game) => {
-
-		/*var players = db.query('overtime', function(row) {
-			if (row.id_game == game && row.state == 'ok')
-				return true;
-			else
-				return false;
-		});
-		players.sort(function(a, b) {
-			if (a.order < b.order)
-				return -1;
-			else if (a.order == b.order)
-				return 0;
-			else if (a.order > b.order)
-				return 1;
-		});*/
-		var players = [];
-		var places = this.getPlaces(game);
-		var buffer = this.getBuffer(game);
-		debug(places);
-		debug(buffer);
-		for (let i = 1; i < 4; i++) {
-			if (places[i].length > 0)
-				for (let j = 0; j < places[i].length; j++)
-					players.push(places[i][j]);
-		}
-		for (let i = 1; i < 4; i++) {
-			if (buffer[i].length > 0)
-				for (let j = 0; j < buffer[i].length; j++)
-					players.push(buffer[i][j]);
-		}
-		return players;
-
-	},
-
-	getPlaces: (game) => {
-		const players = db.query('overtime', {
-			id_game: game,
-			state: 'ok'
-		});
-		const places = this.constructPlacesTemplate();
-		players.forEach((player) => {
-			places[player.place].push(player);
-		});
-		return places;
-	},
-
-	getBuffer: (game) => {
-		const players = db.query('overtime', {
-			id_game: game,
-			state: 'buffer'
-		});
-		const buffer = this.constructPlacesTemplate();
-		players.forEach((player) => {
-			buffer[player.place].push(player);
-		});
-		return buffer;
-	},
-
-	fromBufferToPlaces: (game, buffer) => {
-		buffer.forEach((player) => {
-			db.update('overtime', {
-				id_game: game,
-				id_player: player.id_player
-			}, (row) => {
-				row.state = 'ok';
-				return row;
-			});
-		});
-		db.commit();
-
-	},
-
-	fromBufferToLowerLevel: (game, buffer, count) => {
-		buffer.forEach((player) => {
-			if (parseInt(player.place) + count < 4) {
-				db.update('overtime', {
-					id_game: game,
-					id_player: player.id_player
-				}, (row) => {
-					row.place = parseInt(player.place) + count;
-					row.state = 'ok';
-					return row;
-				});
-			} else {
-				db.update('overtime', {
-					id_game: game,
-					id_player: player.id_player
-				}, (row) => {
-					row.place = 4;
-					row.state = 'out';
-					return row;
-				});
-			}
-		});
-		db.commit();
-	},
-
-	constructPlacesTemplate: () => {
-		return {
-			1: [],
-			2: [],
-			3: []
-		};
 	}
-
 };
+
+DB.update();
+
+const db = DB.dBase;
+
+const Admin = {
+
+	purge: () => {
+		DB.purge();
+	},
+
+	totalReset: () => {
+		DB.totalReset();
+	}
+}

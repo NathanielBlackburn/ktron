@@ -2,7 +2,7 @@ const Page = {
 
 	currentSettingsPage: 1,
 
-	go: function(number = 0, noHide = false) {
+	go: function (number = 0, noHide = false) {
 		$('.carousel').carousel(number);
 		if (number != 0) {
 			this.currentSettingsPage = number;
@@ -17,14 +17,14 @@ const Page = {
 			}
 		}
 	},
-	
-	start: function() {
+
+	start: function () {
 		this.go();
 	},
 
-	menuButton: function(button) {
+	menuButton: function (button) {
 		if (!$(button).hasClass('active')) {
-			$('.navbar button.page').each(function() {
+			$('.navbar button.page').each(function () {
 				$(this).removeClass('active');
 			});
 			this.go($(button).data('page'), true);
@@ -35,7 +35,6 @@ const Page = {
 };
 
 const toggleSlide = (element, noClose, speed) => {
-
 	if (typeof speed == 'undefined')
 		speed = 300;
 	if (typeof noClose == 'undefined')
@@ -45,45 +44,19 @@ const toggleSlide = (element, noClose, speed) => {
 	} else if (!noClose) {
 		$(element).slideUp(speed);
 	}
-
 };
 
-const fillDataNodes = (node, clear = false) => {
-	const players = db.query('players').sort((a, b) => a.name.localeCompare(b.name));
-	const chosenIDs = db.query('players_chosen').map((player) => parseInt(player.id_player));
+const fillDataNodes = (node) => {
 	switch (node) {
 		case 'players': {
-			const list = $('#all-players');
-			if (clear) {
-				$(list).empty();
-			}
+			const list = $('#players');
+			$(list).empty();
+			const players = DB.fetchAllPlayers().sort((a, b) => a.name.localeCompare(b.name));
 			players
-				.filter(player => !chosenIDs.includes(player.ID))
 				.forEach(player => {
 					const option = document.createElement('option');
 					option.appendChild(document.createTextNode(player.name));
-					$(option).data('quiz-player-id', player.ID);
-					$(option).on('dblclick', (event) => {
-						playerMoveToLeft($(event.target).data('quiz-player-id'));
-					});
-					list.append(option);
-				});
-			break;
-		}
-		case 'players_chosen': {
-			const list = $('#players-chosen');
-			if (clear) {
-				$(list).empty();
-			}
-			players
-				.filter(player => chosenIDs.includes(player.ID))
-				.forEach(player => {
-					const option = document.createElement('option');
-					option.appendChild(document.createTextNode(player.name));
-					$(option).data('quiz-player-id', player.ID);
-					$(option).on('dblclick', (event) => {
-						playerMoveToRight($(event.target).data('quiz-player-id'));
-					});
+					$(option).data('playerId', player.ID);
 					list.append(option);
 				});
 			break;
@@ -93,20 +66,18 @@ const fillDataNodes = (node, clear = false) => {
 				return;
 			}
 			const list = $('#quiz-list');
-			if (clear) {
-				$(list).empty();
-			}
+			$(list).empty();
 			KTron.quizzes.forEach(quiz => {
 				const option = document.createElement('option');
 				option.appendChild(document.createTextNode(quiz.title));
-				$(option).data('quiz-code', quiz.code);
+				$(option).data('quizCode', quiz.code);
 				list.append(option);
 			});
 			updateQuestionsDescription(KTron.quizzes[0]);
 			$(list).off('change');
 			$(list).on('change', (event) => {
-				const code = $(event.target).find(':selected').first().data('quiz-code');
-				updateQuestionsDescription(KTron.quizzes.find(quiz => (Quiz.code == code)));
+				const code = $(event.target).find(':selected').first().data('quizCode');
+				updateQuestionsDescription(KTron.quizzes.find(quiz => (quiz.code == code)));
 			});
 			break;
 		}
@@ -120,178 +91,216 @@ const updateQuestionsDescription = (quiz) => {
 	$('#question-set-count').html('<strong>Liczba pytań: </strong>  <span class="content">' + quiz.questions.length + '</span>');
 };
 
-const error = (msg, modal = false) => {
+const error = (msg, title = 'Błąd!') => {
+	$('#error-modal-title').empty().html(title);
+	$('#error-modal-content').empty().html(msg);
+	const myModal = new bootstrap.Modal('#error-message');
+	myModal.toggle();
+};
 
-	if (!modal)
-		alert(msg);
-	else {
-		$('#error-message-content').empty().text(msg);
-		const myModal = new bootstrap.Modal('#error-message', {});
-		myModal.toggle();
+const formatOvertimePoints = (points) => {
+	return (points > 0) ? `(+${points})` : '';
+};
+
+const togglePointsModal = () => {
+	if ($('#points-modal').hasClass('show')) {
+		const modal = bootstrap.Modal.getInstance('#points-modal');
+		modal.hide();
+	} else {
+		showPointsModal();
 	}
+};
+
+const showPointsModal = () => {
+	const players = DB.fetchAllPlayers();
+	const points = DB.fetchAllPoints();
+	if (!points.length) {
+		showToast('Nie zdobyto jeszcze żadnych punktów.', 'warning');
+		return;
+	}
+	players.forEach((player) => {
+		player['points'] = DB.fetchPlayerPoints(player.ID, false);
+		player['overtimePoints'] = DB.fetchPlayerPoints(player.ID, true);
+	});
+	players.sort((a, b) => {
+		if (a.points < b.points) {
+			return 1;
+		} else if (a.points == b.points) {
+			if (a.overtimePoints < b.overtimePoints)
+				return 1;
+			else if (a.overtimePoints == b.overtimePoints)
+				return 0;
+			else if (a.overtimePoints > b.overtimePoints)
+				return -1;
+		} else if (a.points > b.points) {
+			return -1;
+		}
+	});
+	let lp = 1;
+	const tbody = $('#points-modal table tbody');
+	tbody.empty();
+	players.forEach((player) => {
+		let currentStats = tbody.html();
+		const points = player.points;
+		const overtimePoints = formatOvertimePoints(player.overtimePoints);
+		currentStats += `<tr><td>${lp}</td><td>${player.name}</td><td>${points} <span style="font-size: small;">${overtimePoints}</span></td></tr>`;
+		tbody.html(currentStats);
+	});
+	const myModal = new bootstrap.Modal('#points-modal');
+	myModal.toggle();
 };
 
 const playerAdd = () => {
-
 	const name = $('#player-add-name').val();
 	if (name == '') {
-		error('Podaj imię/nazwę drużyny!', true);
 		return;
 	} else {
-		rows = db.query('players', {name: name});
-		if (rows.length > 0) {
-			error('Już jest taki wpis w bazie danych!', true);
+		const player = DB.fetchPlayerByName(name);
+		if (player) {
+			showToast('Taka nazwa już istnieje.', 'error');
 			return;
 		} else {
-			db.insert('players', {name: name});
-			db.commit();
-			fillDataNodes('players', true);
+			DB.createPlayer(name);
+			fillDataNodes('players');
 			$('#player-add-name').val('');
 		}
-	}	
-
+	}
 };
 
 const playerRemove = () => {
-
-	var selected = $('#all-players option:selected');
+	const selected = $('#players option:selected');
 	if (selected.length) {
 		if (confirm('Na pewno usunąć?')) {
-			selected.forEach((player) => {
-				db.deleteRows('players', {ID: player.getAttribute('value')});
-				db.commit();
+			selected.each((index, playerElement) => {
+				DB.removePlayer($(playerElement).data('playerId'));
 			});
-			fillDataNodes('players', true);
-			updateQuestionsDescription($('#questions-choice').find(':selected')[0].getAttribute('value'));
+			fillDataNodes('players');
 		}
+	} else {
+		showToast('Nie wybrano nikogo do usunięcia.', 'warning');
 	}
 };
 
-const playerMoveToLeft = (playerId) => {
-
-	db.insert('players_chosen', {id_player: playerId});
-	db.commit();
-	fillDataNodes('players', true);
-	fillDataNodes('players_chosen', true);
-
-};
-
-const playerMoveToRight = (playerId) => {
-	db.deleteRows('players_chosen', {id_player: playerId});
-	db.commit();
-	fillDataNodes('players', true);
-	fillDataNodes('players_chosen', true);
-};
-
-const allPlayersToLeft = () => {
-	const players = db.query('players');
-	players.forEach(player => {
-		db.insert('players_chosen', {id_player: player.ID});
-	});
-	db.commit();
-	fillDataNodes('players', true);
-	fillDataNodes('players_chosen', true);
-};
-
-const allPlayersToRight = () => {
-	db.truncate('players_chosen');
-	db.commit();
-	fillDataNodes('players', true);
-	fillDataNodes('players_chosen', true);
+const playersPurge = () => {
+	if (DB.fetchAllPlayers().length > 0 && confirm('Na pewno usunąć WSZYSTKICH graczy?')) {
+		DB.removeAllPlayers();
+		fillDataNodes('players');
+		showToast('Usunięto.');
+	}
 };
 
 const playerAddShow = () => {
-
 	toggleSlide('#player-add');
-	$('#player-add-name').focus();
+	$('#player-add-name').trigger('focus');
 
 };
 
-const lightSwitch = (fade) => {
-
-	if (typeof fade == 'undefined')
-		fade = '#cinema-fade';
+const lightSwitch = () => {
 	if ($('#cinema-fade').is(':hidden')) {
 		$('#cinema-fade').fadeIn(300);
-		$('#cinema-light').css('transform', 'rotate(0)');
-		$('#cinema-light').css('-moz-transform', 'rotate(0)');
-		$('#cinema-light').css('-webkit-transform', 'rotate(0)');
+		$('#cinema-light i').removeClass('bi-lightbulb-fill').addClass('bi-lightbulb-off-fill');
+		$('#cinema-light').removeClass('btn-dark').addClass('btn-light');
 	} else {
 		$('#cinema-fade').fadeOut(300);
-		$('#cinema-light').css('transform', 'rotate(180deg)');
-		$('#cinema-light').css('-moz-transform', 'rotate(180deg)');
-		$('#cinema-light').css('-webkit-transform', 'rotate(180deg)');
+		$('#cinema-light i').removeClass('bi-lightbulb-off-fill').addClass('bi-lightbulb-fill');
+		$('#cinema-light').removeClass('btn-light').addClass('btn-dark');
 	}
-
 };
 
-const loadScript = (src, last) => {
-
-	var script = document.createElement('script');
+const loadScript = (code) => {
+	const script = document.createElement('script');
 	script.type = 'text/javascript';
-	script.src = 'pytania/js/' + src;
-	if (last) {
-		$(script).on('load', function() {
+	script.src = `pytania/${code}/${code}.js`;
+	$(script).on('load', function () {
+		KTron.scriptsLoaded += 1;
+		if (KTron.scriptsLoaded == KTron.scriptsToLoad) {
 			init();
-		});
-	}
+		}
+	});
 	document.head.appendChild(script);
-
 };
 
 const loadQuestions = () => {
-
 	if (KTron.config && KTron.config.quizFiles) {
 		const config = KTron.config;
+		KTron.scriptsToLoad = config.quizFiles.length;
 		while (config.quizFiles.length) {
 			const script = config.quizFiles.pop();
-			loadScript(script, config.quizFiles.length == 0);
+			loadScript(script);
 		}
 	}
-
 };
 
-const bindKeypress = () => {;
-
-	$(document).on('keypress', (event) => {
+const bindKeypress = () => {
+	$(document).on('keyup', (event) => {
 		if (event.shiftKey && event.code == 'KeyP' && Quiz.inProgress) {
-			Stats.gamePointsModal();
+			togglePointsModal();
 		} else if (event.shiftKey && event.altKey && event.code == 'KeyR') {
 			if (confirm('Ar ju siur?')) {
-				Admin.purge();
+				DB.purge();
 			}
 		}
 	});
+	$('#player-add-name').on('keyup', (event) => {
+		if (event.code == 'Escape') {
+			$('#player-add-name').val('');
+			toggleSlide('#player-add', false);
+		}
+	});
+};
 
+const setupSettings = () => {
+	document.querySelector('#settingsHalfPoint').checked = Quiz.settings.buttonHalf;
+	document.querySelector('#settingsOnePoint').checked = Quiz.settings.buttonOne;
+	document.querySelector('#settingsOneHalfPoint').checked = Quiz.settings.buttonOneHalf;
+	document.querySelector('#settingsTwoPoints').checked = Quiz.settings.buttonTwo;
+	document.querySelector('#settingsShowPointsAfterEachRound').checked = Quiz.settings.showPointsAfterEachRound;
+};
+
+const settingsToggle = (target) => {
+	switch (target.id) {
+		case 'settingsHalfPoint':
+			Quiz.settings.buttonHalf = target.checked;
+			break;
+		case 'settingsOnePoint':
+			Quiz.settings.buttonOne = target.checked;
+			break;
+		case 'settingsOneHalfPoint':
+			Quiz.settings.buttonOneHalf = target.checked;
+			break;
+		case 'settingsTwoPoints':
+			Quiz.settings.buttonTwo = target.checked;
+			break;
+		case 'settingsShowPointsAfterEachRound':
+			Quiz.settings.showPointsAfterEachRound = target.checked;
+			break;
+	}
 };
 
 const init = () => {
-
-	fillDataNodes('questions', true);
+	fillDataNodes('questions');
 	$('.carousel').carousel({
 		interval: false
 	});
-	Stats.overallPlayersPoints();
-	$('button.close[data-slide="up"]').click(function() {
-
+	// TODO: Check these, are they needed?
+	$('button.btn-close[data-slide="up"]').on('click', function () {
 		toggleSlide($(this).parent()[0], false);
-
 	});
-	$('button.close[data-slide="up-modal"]').click(function() {
-
+	$('button.btn-close[data-slide="up-modal"]').on('click', function () {
 		toggleSlide($(this).parent()[0], false);
 		lightSwitch('#cinema-fade-modal');
-
+	});
+	$('#player-add-form').on('submit', (event) => {
+		event.preventDefault();
+		playerAdd();
 	});
 	bindKeypress();
+	setupSettings();
 	fillDataNodes('players');
-	fillDataNodes('players_chosen');
 	checkQuizProgress();
-
 };
 
 const pointsToWords = (number) => {
-
 	number = parseFloat(number);
 	if (Math.floor(number) != number) {
 		return 'punkta';
@@ -305,17 +314,6 @@ const pointsToWords = (number) => {
 			return 'punktów';
 		}
 	}
-
-};
-
-const toggleVis = (el) => {
-	if (!isVisible(el)) {
-		el.removeClas('d-none');
-		el.addClass('d-block');
-	} else {
-		el.removeClas('d-block');
-		el.addClass('d-none');
-	}
 };
 
 const isVisible = (el) => {
@@ -326,6 +324,40 @@ const isDisabled = (element) => {
 	return $(element).hasClass('disabled');
 }
 
+const showToast = (text, type = 'info') => {
+	const toast = $('#quiz-toast').get(0);
+	$('#quiz-toast div.toast-body').text(text);
+	$('#quiz-toast div.toast-icon').removeClass(['toast-icon-info', 'toast-icon-warning', 'toast-icon-error']);
+	switch (type) {
+		case 'warning':
+			$('#quiz-toast div.toast-icon').addClass('toast-icon-warning');
+			$('#quiz-toast strong.toast-title').text('Uwaga');
+			break;
+		case 'error':
+			$('#quiz-toast div.toast-icon').addClass('toast-icon-error');
+			$('#quiz-toast strong.toast-title').text('Błąd!');
+			break;
+		default:
+			$('#quiz-toast div.toast-icon').addClass('toast-icon-info');
+			$('#quiz-toast strong.toast-title').text('Info');
+	}
+	const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toast);
+	toastBootstrap.show()
+};
+
+const showEl = (selector) => {
+	const element = (selector.constructor == $().constructor) ? selector : $(selector);
+	element.removeClass('d-none');
+};
+
+const hideEl = (selector) => {
+	const element = (selector.constructor == $().constructor) ? selector : $(selector);
+	element.addClass('d-none');
+};
+
 $(() => {
+	if (KTron && KTron.quizzes) {
+		window['questions'] = KTron.quizzes;
+	}
 	loadQuestions();
 });

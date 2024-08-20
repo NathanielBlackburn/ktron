@@ -11,6 +11,10 @@ body {
 	position: relative;
 }
 
+.hidden {
+	display: none;
+}
+
 .carousel-inner {
 	overflow: visible;
 }
@@ -20,8 +24,6 @@ body {
 }
 
 #media-container {
-	width: 650px;
-	margin: 0 auto;
 	text-align: center;
 }
 
@@ -39,13 +41,14 @@ body {
 	font-weight: bold;
 }
 
-#quiz-list {
-	width: 98%;
+.quiz-info-line {
+	border-bottom: 1px solid #000;
+	opacity: .3;
 }
 
-.quiz-info-dash {
-	border-bottom: 1px dashed #000;
-	opacity: .3;
+.quiz-settings-form legend {
+	font-size: 0.95em;
+	font-weight: bold;
 }
 
 #quiz-text-bottom {
@@ -55,8 +58,8 @@ body {
 
 #tools-button {
 	position: absolute;
-	top: 15px;
-	right: 15px;
+	top: 10px;
+	right: 10px;
 	cursor: pointer;
 }
 
@@ -75,8 +78,8 @@ div#main {
 
 #settings-back {
 	position: absolute;
-	right: 30px;
-	top: 15px;
+	right: 10px;
+	top: 10px;
 }
 
 button.rounded {
@@ -84,7 +87,7 @@ button.rounded {
 }
 
 .players[multiple] {
-	height: 120px;
+	height: 200px;
 }
 
 .bordered-small {
@@ -110,29 +113,39 @@ button.rounded {
 	vertical-align: top;
 }
 
-.floated-right {
-	float: right;
+.floated-left {
+	float: left;
 }
 
-.forty-percent {
-	width: 40%;
+.quiz-main-logo {
+	min-height: 450px;
 }
 
-.twenty-percent {
-	width: 18%;
-}
+/* #player-choice { */
+	/* margin-right: 20px;
+	padding: 10px;
+	padding-bottom: 20px; */
+/* } */
 
-#player-choice {
-	width: 500px;
-}
-
-#player-add {
-	width: 290px;
+/* #player-add {
+	width: 800px;
 	position: absolute;
 	top: 50px;
 	background: #fff;
 	left: 400px;
 	padding: 10px;
+} */
+
+.mg-b-10 {
+	margin-bottom: 10px;
+}
+
+.bolder {
+	font-weight: bold;
+}
+
+.mg-b-20 {
+	margin-bottom: 20px;
 }
 
 #player-add form {
@@ -140,7 +153,7 @@ button.rounded {
 }
 
 #player-choice select {
-	width: 150px;
+	width: 95%;
 }
 
 .btn-tiny {
@@ -154,12 +167,11 @@ button.rounded {
 	display: inline-block;
 }
 
-#questions-choice {
-	width: 800px;
-	margin-top: 30px;
+/* #questions-choice {
+	width: 900px;
 	padding: 10px;
 	vertical-align: top;
-}
+} */
 
 select#questions-list {
 	width: 280px;
@@ -213,18 +225,6 @@ select#questions-list {
 	vertical-align: middle;
 }
 
-#stats-page div.bordered-medium {
-	padding: 10px 25px 0 25px;
-}
-
-#stats-page div.bordered-medium button.close {
-	margin-top: 0;
-}
-
-#stats-page div.bordered-medium {
-	margin-bottom: 20px;
-}
-
 #question-set-count {
 	margin-bottom: 0;
 }
@@ -233,10 +233,20 @@ a.error-tooltip {
 	color: red;
 }
 
+#questions-choice p {
+	margin: 0;	
+}
+
 .info-quiz {
 	text-align: center;
 	font-size: 15px;
 	margin-bottom: 7px;
+}
+
+#info-quiz-player div.team-name {
+	font-size: 30px;
+	font-weight: bold;
+	color: deeppink;
 }
 
 #image-container {
@@ -259,26 +269,58 @@ a.error-tooltip {
 }
 
 #movie-container {
-	margin: 15px 0 0 0;
-	max-width: 100%;
+	margin-top: 15px;
 	z-index: 20;
-	position: relative;
+	display: inline-block;
 }
 
-#movie-container > div {
+#movie-content {
+	margin-bottom: 15px;
+}
+
+#movie-container * {
+	z-index: 20;
+}
+
+#movie-content {
+	display: grid;
+	align-items: center;
+	justify-items: center;
+}
+
+#movie-overlay, #movie-video {
+	grid-column: 1;
+	grid-row: 1;
 	width: 100%;
+}
+
+#movie-overlay {
+	height: 100%;
+	width: 100%;
+	z-index: 21;
+}
+
+.movie-overlay-icon-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	height: 100%;
 }
 
-#movie-container video {
-	max-width: 100%;
+.movie-overlay-icon {
+	font-size: 75px;
+	color: white;
+	opacity: 50%;
+	display: inline-block;
+	cursor: pointer;
+}
+
+.movie-overlay-icon:hover {
+	opacity: 80%;
 }
 
 #movie-overlay {
 	background: black;
-	position: absolute;
-	left: 0;
-	top: 0;
 }
 
 #cinema-fade {
@@ -297,18 +339,15 @@ a.error-tooltip {
 	z-index: 10;
 }
 
-#cinema-light {
-	cursor: pointer;
+div.in-game-tools {
 	z-index: 20;
 	position: absolute;
-	width: 32px;
-	height: 32px;
-	background: url(../images/light.png);
-	transform: rotate(180deg);
-	-webkit-transform: rotate(180deg);
-	-moz-transform: rotate(180deg);
-	right: 30px;
-	top: 30px;
+	right: 10px;
+	top: 10px;
+}
+
+div.in-game-tools button {
+	cursor: pointer;
 }
 
 .white {
@@ -322,7 +361,7 @@ a.error-tooltip {
 #player-stats-modal-wrapper {
 	position: absolute;
 	top: 0;
-	width: 100%;
+	width: 70%;
 	z-index: 20;
 }
 
@@ -340,14 +379,38 @@ a.error-tooltip {
 	margin-right: 5px;
 }
 
-/* #answered-one {
-	margin-bottom: 10px;
-} */
-
-#not-answered {
+#notAnswered {
 	margin-bottom: 15px;
 }
 
 span.d-none {
 	color: transparent;
+}
+
+.non-visible {
+	display: none;
+}
+
+.toast {
+	position: fixed;
+	bottom: 0;
+	right: 0;
+	margin: 1rem;
+}
+
+.toast-icon {
+	width: 20px;
+	height: 20px;
+}
+
+.toast-icon-info {
+	background: dodgerblue;
+}
+
+.toast-icon-warning {
+	background: orange;
+}
+
+.toast-icon-error {
+	background: red;
 }

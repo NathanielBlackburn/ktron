@@ -2,52 +2,75 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<!-- <link rel="stylesheet" href="libs/bootstrap/css/bootstrap.min.css" /> -->
 	<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="node_modules/bootstrap-icons/font/bootstrap-icons.min.css">
+	<link rel="stylesheet" href="node_modules/viewerjs/dist/viewer.min.css">
 	<link rel="stylesheet" href="css/main.css" />
-	<!-- <script type="text/javascript" src="libs/jquery/jquery-1.11.3.min.js"></script> -->
 	<script type="text/javascript" src="node_modules/jquery/dist/jquery.min.js"></script>
-	<!-- <script type="text/javascript" src="libs/bootstrap/js/bootstrap.min.js"></script> -->
 	<script type="text/javascript" src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="node_modules/localstoragedb/localstoragedb.min.js"></script>
+	<script type="text/javascript" src="node_modules/viewerjs/dist/viewer.min.js"></script>
+	<script type="text/javascript" src="js/model/settings.js"></script>
+	<script type="text/javascript" src="js/model/player.js"></script>
+	<script type="text/javascript" src="js/model/overtimePlayer.js"></script>
+	<script type="text/javascript" src="js/model/overtime.js"></script>
+	<script type="text/javascript" src="js/quizFiles.js"></script>
 	<script type="text/javascript" src="js/config.js"></script>
 	<script type="text/javascript" src="js/db.js"></script>
 	<script type="text/javascript" src="js/common.js"></script>
 	<script type="text/javascript" src="js/quiz.js"></script>
-	<script type="text/javascript" src="js/stats.js"></script>
-	<title>Konkursotron 3.0</title>
+	<title>Konkursotron 3.0 Szagma</title>
 </head>
 <body>
 
-	<div id="cinema-fade-modal" class="d-none"></div>
-	<div id="cinema-fade" class="d-none"></div>
+	<div id="cinema-fade-modal" class="hidden"></div>
+	<div id="cinema-fade" class="hidden"></div>
+	<div class="in-game-tools">
+		<button id="cinema-light" class="btn btn-dark d-none" onclick="lightSwitch()">
+			<i class="bi bi-lightbulb-fill"></i>
+		</button>
+		<button id="show-points" class="btn btn-primary d-none" onclick="togglePointsModal()">
+			<i class="bi bi-file-bar-graph-fill"></i>
+		</button>
+	</div>
 
-	<div id="cinema-light" class="d-none" onclick="lightSwitch()"></div>
-
-	<div class="modal fade" id="error-message" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal fade" id="error-message" tabindex="-1" aria-labelledby="error-modal-title" aria-hidden="true">
 		<div class="modal-dialog">
 		  <div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title">Błąd!</h5>
-				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				<h5 class="modal-title" id="error-modal-title">Błąd!</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
 			</div>
 			<div class="modal-body">
-				<p id="error-message-content"></p>
+				<p id="error-modal-content"></p>
 			</div>
 		  </div>
 		</div>
 	</div>
 
-	<!-- <div id="error-message" class="modal d-none fade">
-		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-		<p id="message"></p>
-	</div> -->
-
-	<!-- navbar
-	<div class="navbar navbar-fixed-top" id="navbar" data-visible="false">
-		<div class="navbar-inner">
+	<div class="modal fade" id="points-modal" tabindex="-1" aria-labelledby="points-modal-title" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					  <h1 class="modal-title fs-5" id="points-modal-title">Punkty</h1>
+					  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+				</div>
+				<div class="modal-body">
+					<table class="table table-striped">
+						<thead>
+							<tr>
+								<th>Lp.</th>
+								<th>Gracz</th>
+								<th>Punkty</th>
+							</tr>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>	
+				</div>
+			  </div>
 		</div>
-	</div> -->
+	</div>
 
 	<!-- main body -->
 	<div id="main" class="carousel slide">
@@ -55,109 +78,146 @@
 
 			<!-- title page -->
 			<div class="carousel-item active" id="title-page">
-				<div id="tools-button" class="bordered-small">
-					<img src="images/tools.png" title="Ustawienia" onclick="Page.go(Page.currentSettingsPage);" />
-				</div>
+				<button id="tools-button" class="btn btn-info" onclick="Page.go(Page.currentSettingsPage)">
+					<i class="bi bi-tools"></i>
+				</button>
 				<div class="container">
 					<div id="media-container">
 						<div id="quiz-info" class="d-none"></div>
-						<div id="quiz-info-bottom" class="quiz-info-dash d-none"></div>
-						<img src="images/totoro.jpg" title="Totoro" id="logo-image" />
+						<div class="quiz-info-line d-none"></div>
+						<div class="quiz-main-logo mg-b-20">
+							<img src="res/main.png" title="Totoro" id="logo-image" />
+						</div>
 						<div id="cat-text" class="d-none"></div>
 						<div id="question-text" class="d-none"></div>
 						<div id="image-container" class="d-none"></div>
 						<div id="audio-container" class="d-none"></div>
 						<div id="movie-container" class="d-none"></div>
-						<div id="quiz-text-bottom" class="quiz-info-dash d-none"></div>
+						<div id="quiz-text-bottom" class="quiz-info-line d-none"></div>
 					</div>
 					<div class="center" id="main-page-answer-buttons">
-						<button class="btn btn-lg btn-primary" id="quiz-start" onclick="quizStart()">Start!</button>
-						<button class="btn btn-large btn-primary d-none" id="get-answer" onclick="questionAnswered()">Odpowiedź</button>
-						<button class="btn btn-large btn-danger d-none" id="not-answered" onclick="answeredIncorrectly()"><i class="icon-thumbs-down icon-white"></i></button>
+						<button class="btn btn-lg btn-primary" id="quizStart" onclick="startQuiz()">Start!</button>
+						<button class="btn btn-large btn-primary d-none" id="getAnswer" onclick="questionAnswered()">Odpowiedź</button>
+						<button class="btn btn-large btn-danger d-none" id="notAnswered" onclick="answeredIncorrectly()"><i class="bi bi-hand-thumbs-down"></i>0</button>
 					</div>
 					<div class="center" id="main-page-points-buttons">
-						<button class="btn btn-large btn-success d-none" id="answered-half" onclick="answeredCorrectly(0.5)"><i class="icon-thumbs-up icon-white"></i> 0.5</button>
-						<button class="btn btn-large btn-primary d-none" id="answered-one" onclick="answeredCorrectly(1)"><i class="icon-thumbs-up icon-white"></i> 1</button>
-						<button class="btn btn-large btn-info d-none" id="answered-onehalf" onclick="answeredCorrectly(1.5)"><i class="icon-thumbs-up icon-white"></i> 1.5</button>
-						<button class="btn btn-large btn-warning d-none" id="answered-two" onclick="answeredCorrectly(2)"><i class="icon-thumbs-up icon-white"></i> 2</button>
+						<button class="btn btn-large btn-success d-none" id="buttonHalf" onclick="answeredCorrectly(0.5)"><i class="bi bi-hand-thumbs-up"></i> 0.5</button>
+						<button class="btn btn-large btn-primary d-none" id="buttonOne" onclick="answeredCorrectly(1)"><i class="bi bi-hand-thumbs-up"></i> 1</button>
+						<button class="btn btn-large btn-info d-none" id="buttonOneHalf" onclick="answeredCorrectly(1.5)"><i class="bi bi-hand-thumbs-up"></i> 1.5</button>
+						<button class="btn btn-large btn-warning d-none" id="buttonTwo" onclick="answeredCorrectly(2)"><i class="bi bi-hand-thumbs-up"></i> 2</button>
 					</div>
 					<div class="center" id="main-page-control-buttons">
-						<button class="btn btn-large btn-danger d-none" id="end-quiz" onclick="endQuiz()">Zakończ konkurs</button>
-						<button class="btn btn-large btn-inverse d-none" id="cancel-answer" onclick="cancelAnswer()">Anuluj punkt</button>
+						<button class="btn btn-large btn-danger d-none" id="endQuiz" onclick="endQuiz()">Zakończ konkurs</button>
+						<button class="btn btn-large btn-danger d-none" id="cancelAnswer" onclick="cancelAnswer()">Anuluj ostatni punkt</button>
 					</div>
-				</div>
-				
-				<div id="player-stats-modal-wrapper">
-				<div class="container" id="player-stats-modal-container">
-					<div class="bordered-medium d-none" id="player-stats-modal">
-						<button type="button" class="close" data-slide="up-modal">&times;</button>
-						<table class="table table-striped">
-							<caption>Zdobyte punkty</caption>
-							<thead>
-								<tr>
-									<th>Lp.</th>
-									<th>Gracz</th>
-									<th>Punkty</th>
-								</tr>
-							</thead>
-							<tbody>
-							</tbody>
-						</table>
-					</div>
-				</div>
-				</div>
-				
+				</div>				
 			</div>
 
 			<!-- settings page -->
 			<div class="carousel-item" id="settings-page">
 				<div id="settings-back">
-					<button class="btn btn-danger" onclick="Page.start();">Powrót</button>
+					<button id="home-button" class="btn btn-success" onclick="Page.start();">
+						<i class="bi bi-house-door-fill"></i>
+					</button>
 				</div>
 	
 				<div class="container">
 
-					<div class="bordered-medium" id="player-choice">
+					<div class="row">
+						<div class="col-sm-3">
+							<div class="bordered-medium" id="player-choice">
+								<div class="center">
+									<div>
+										<label for="players" class="mg-b-10">Gracze</label>
+										<button class="btn btn-tiny btn-primary inline" onclick="playerAddShow()">+</button>
+										<button class="btn btn-tiny btn-warning inline" onclick="playerRemove()">-</button>
+										<button class="btn btn-tiny btn-danger inline" onclick="playersPurge()">&times;</button>
+									</div>
+									<select class="players" multiple="multiple" id="players"></select>
+								</div>
+							</div>
+						</div>
 
-						<div class="column forty-percent center">
-							<label for="players-chosen">Gracze</label>
-							<select class="players" multiple="multiple" id="players-chosen">
-							</select>
-						</div>
-						
-						<div class="column center twenty-percent">
-							<button class="btn btn-success" id="move-from-right-to-left" onclick="allPlayersToLeft()">&lt;&lt;</button>
-							<button class="btn btn-success" id="move-from-left-to-right" onclick="allPlayersToRight()">&gt;&gt;</button>
-						</div>
-						
-						<div class="column forty-percent floated-right center">
-							<label for="all-players" class="inline">Poczekalnia</label>
-							<button class="btn btn-tiny inline" onclick="playerAddShow()">+</button>
-							<button class="btn btn-tiny btn-danger inline" onclick="playerRemove()">-</button>
-							<select class="players" multiple="multiple" id="all-players">
-							</select>
-						</div>
-				
-					</div>
 
-					<div class="bordered-medium d-none" id="player-add">
-						<button type="button" class="close" data-slide="up">&times;</button>
-						<form class="form-inline" onsubmit="return false;">
-							<label for="player-add-name">Gracz/Nazwa drużyny</label>
-							<input type="text" id="player-add-name" placeholder="Nazwa/Imię" />
-							<button class="btn btn-primary" onclick="playerAdd()">Dodaj</button>
-						</form>
-					</div>
-
-					<div class="bordered-medium floated-right" id="questions-choice">
-						<div class="column fifty">
-							<label for="quiz-list">Konkursy</label>
-							<select id="quiz-list"></select>
-						</div>
-						<div class="column fifty">
-							<p id="question-set-title"></p>
-							<p id="question-set-author"></p>
-							<p id="question-set-count"></p>
+						<div class="col-sm-6">
+							<div class="row mg-b-20">
+								<div class="col-8 col-sm-12">
+									<div class="bordered-medium mg-b-20" id="questions-choice">
+										<div class="mg-b-20">
+											<p id="question-set-title"></p>
+											<p id="question-set-author"></p>
+											<p id="question-set-count"></p>
+										</div>
+										<div class="row g-2 align-items-center mg-b-10">
+											<div class="col-auto">
+												<label for="quiz-list" class="col-form-label">Konkursy</label>
+											</div>
+											<div class="col-auto">
+												<select class="form-select" id="quiz-list"></select>
+											</div>
+										</div>
+									</div>
+									<div class="bordered-medium" id="quiz-settings">
+										<span class="bolder">Ustawienia</span>
+										<div class="quiz-info-line mg-b-10"></div>
+										<div class="container">
+											<div class="row">
+												<div class="col">
+													<form>
+														<fieldset class="quiz-settings-form">
+															<legend>Przyciski</legend>
+															<div class="mb-3">
+																<div class="form-check">
+																	<input class="form-check-input" type="checkbox" id="settingsHalfPoint" onchange="settingsToggle(this)">
+																	<label class="form-check-label" for="settingsHalfPoint">0.5 punkta</label>
+																</div>
+																<div class="form-check">
+																	<input class="form-check-input" type="checkbox" id="settingsOnePoint" onchange="settingsToggle(this)" disabled>
+																	<label class="form-check-label" for="settingsOnePoint">1 punkt</label>
+																</div>
+																<div class="form-check">
+																	<input class="form-check-input" type="checkbox" id="settingsOneHalfPoint" onchange="settingsToggle(this)">
+																	<label class="form-check-label" for="settingsOneHalfPoint">1.5 punkta</label>
+																</div>
+																<div class="form-check">
+																	<input class="form-check-input" type="checkbox" id="settingsTwoPoints" onchange="settingsToggle(this)">
+																	<label class="form-check-label" for="settingsTwoPoints">2 punkty</label>
+																</div>
+															</div>
+														</fieldset>
+													</form>
+												</div>
+												<div class="col">
+													<form>
+														<fieldset class="quiz-settings-form">
+															<legend>Inne</legend>
+															<div class="mb-3">
+																<div class="form-check">
+																	<input class="form-check-input" type="checkbox" id="settingsShowPointsAfterEachRound" onchange="settingsToggle(this)">
+																	<label class="form-check-label" for="settingsShowPointsAfterEachRound">Pokazuj punkty po każdej rundzie</label>
+																</div>
+															</div>
+														</fieldset>
+													</form>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-8 col-sm-12">
+									<div class="bordered-medium non-visible" id="player-add">
+										<button type="button" class="btn btn-close btn-sm mg-b-10" data-slide="up"></button>
+										<form class="form-inline" id="player-add-form">
+											<div class="input-group mb-3">
+												<input type="text" class="form-control shadow-none" id="player-add-name" placeholder="Nazwa/Imię" />
+												<button type="button" class="btn btn-outline-secondary" onclick="playerAdd()">Dodaj</button>
+											</div>
+										</form>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 					
@@ -165,63 +225,19 @@
 
 			</div>
 
-			<!-- stats page -->
-			<div class="carousel-item" id="stats-page">
-
-				<div class="container">
-
-					<div class="bordered-medium" id="main-stats">
-						<table class="table table-striped">
-							<caption>Statystyki ogólne</caption>
-							<thead>
-								<tr>
-									<th>Lp.</th>
-									<th>Imię/nazwa</th>
-									<th>Punkty</th>
-								</tr>
-							</thead>
-							<tbody>
-							</tbody>
-						</table>
-					</div>
-
-					<div class="bordered-medium d-none" id="player-stats">
-						<button type="button" class="close" data-slide="up">&times;</button>
-						<table class="table table-striped">
-							<caption>Statystyki indywidualne - <strong><span id="player-stats-name"></span></strong></caption>
-							<thead>
-								<tr>
-									<th>Lp.</th>
-									<th>Konkurs</th>
-									<th>Punkty</th>
-								</tr>
-							</thead>
-							<tbody>
-							</tbody>
-						</table>
-					</div>
-
-					<div class="bordered-medium d-none" id="game-stats">
-						<button type="button" class="close" data-slide="up">&times;</button>
-						<table class="table table-striped">
-							<caption>Statystyki konkursowe - <strong><span id="game-stats-title"></span></strong></caption>
-							<thead>
-								<tr>
-									<th>Lp.</th>
-									<th>Imię/Nazwa</th>
-									<th>Punkty</th>
-								</tr>
-							</thead>
-							<tbody>
-							</tbody>
-						</table>
-					</div>
-
+			<!-- Toast -->
+			<div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="quiz-toast" data-bs-delay="4000">
+				<div class="toast-header">
+				  <div class="toast-icon rounded me-2"></div>
+				  <strong class="me-auto toast-title"></strong>
+				  <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
 				</div>
-
+				<div class="toast-body">
+				  Hello, world! This is a toast message.
+				</div>
 			</div>
-
 		</div>
+
 	</div>
 
 </body>

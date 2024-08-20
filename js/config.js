@@ -1,8 +1,9 @@
 const KTron = {
 	config: {
-		quizFiles: ['Izek-Nostalgia69.js'],
-		imageTypes: ['png', 'gif', 'jpg', 'jpeg', 'bmp', 'webp'],
+		quizFiles: ktronQuizFiles,
 		debugMode: false
 	},
 	quizzes: [],
+	scriptsToLoad: 0,
+	scriptsLoaded: 0
 };
