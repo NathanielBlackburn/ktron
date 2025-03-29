@@ -10,7 +10,7 @@ Windows: https://git-scm.com/download/win
 5. W miejscu, gdzie chcemy umieścić aplikację, wpisać komendy:  
 `git clone git@github.com:NathanielBlackburn/ktron.git`  
 `cd ktron`  
-`git checkout 3.0.0`
+`git checkout v3.1.0`
 macOS/Linux:
 `nvm install`  
 `nvm use`  
@@ -36,7 +36,7 @@ Windows: https://git-scm.com/download/win
 `git init .` (uwaga, na końcu jest kropka, nie przejmować się ostrzeżeniami)  
 `git remote add origin https://github.com/NathanielBlackburn/ktron.git`  
 `git fetch origin`  
-`git reset --hard 3.0.0`  
+`git reset --hard v3.1.0`  
 `git clean -df`  
 macOS/Linux:  
 `nvm install`  
@@ -64,7 +64,7 @@ Windows: https://git-scm.com/download/win
 7. Wpisać po kolei komendy:  
 `git remote set-url origin https://github.com/NathanielBlackburn/ktron.git`  
 `git fetch origin`  
-`git reset --hard 3.0.0-Beta-1`  
+`git reset --hard v3.1.0`  
 `git clean -df`  
 macOS/Linux:  
 `nvm install`  

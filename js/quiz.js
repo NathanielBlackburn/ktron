@@ -1,7 +1,6 @@
-﻿const Quiz = {
-
+const Quiz = {
 	round: 1,
-	imageTypes: ['jpg', 'png', 'webp', 'gif', 'pre:question', 'pre:answer'],
+	imageTypes: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pre:question', 'pre:answer'],
 	audioTypes: ['mp3', 'm4a'],
 	videoTypes: ['mp4'],
 	settings: new Settings(),
@@ -292,12 +291,12 @@ const showQuestion = (question) => {
 		$('#cat-text').html('Kategoria: ' + question.category);
 		showEl('#cat-text');
 	}
-	if (Quiz.imageTypes.includes(question.questionType)) {
+	if (Quiz.imageTypes.includes(question.questionType.toLowerCase().trim())) {
 		createImageContainer({code: Quiz.code, id: question.id, type: question.questionType, isAnswer: false});
-	} else if (question.questionType.toLowerCase().trim() == 'mp4') {
-		createVideoContainer(Quiz.code, question.id);
-	} else if (question.questionType.toLowerCase().trim() == 'mp3') {
-		createAudioContainer(Quiz.code, question.id);
+	} else if (Quiz.videoTypes.includes(question.questionType.toLowerCase().trim())) {
+		createVideoContainer({code: Quiz.code, id: question.id, type: question.questionType, isAnswer: false});
+	} else if (Quiz.audioTypes.includes(question.questionType.toLowerCase().trim())) {
+		createAudioContainer({code: Quiz.code, id: question.id, type: question.questionType, isAnswer: false});
 	}
 };
 
@@ -328,13 +327,13 @@ const createImageContainer = (data) => {
 	showEl(imageContainer);
 };
 
-const createVideoContainer = (quizCode, questionId, isAnswer = false) => {
+const createVideoContainer = (data) => {
 	const movieContainer = $('#movie-container');
 	const movieContent = document.createElement('div');
 	movieContent.setAttribute('id', 'movie-content');
 	movieContainer.append(movieContent);
 	let movieOverlay;
-	if (!isAnswer) {
+	if (!data.isAnswer) {
 		movieOverlay = document.createElement('div');
 		movieOverlay.setAttribute('id', 'movie-overlay');
 		movieContent.append(movieOverlay);
@@ -346,32 +345,32 @@ const createVideoContainer = (quizCode, questionId, isAnswer = false) => {
 		iconContainer.append(icon);
 	}
 
-	const mp4 = document.createElement('video');
-	mp4.setAttribute('id', 'movie-video');
-	mp4.setAttribute('controls', 'controls');
-	mp4.className = 'question-video';
-	const lastPart = (isAnswer) ? 'a.mp4' : '.mp4';
-	mp4.src = 'pytania/' + quizCode + '/' + questionId + lastPart;
-	$(movieContent).append(mp4);
+	const video = document.createElement('video');
+	video.setAttribute('id', 'movie-video');
+	video.setAttribute('controls', 'controls');
+	video.className = 'question-video';
+	const lastPart = (data.isAnswer) ? 'a.' + data.type : '.' + data.type;
+	video.src = 'pytania/' + data.code + '/' + data.id + lastPart;
+	$(movieContent).append(video);
 	showEl(movieContainer);
-	if (!isAnswer) {
+	if (!data.isAnswer) {
 		$(movieOverlay).css('height', $('#movie-container > video').css('height'));
-		$(movieOverlay).on('click', (event) => {
+		$(movieOverlay).on('click', () => {
 			hideEl(movieOverlay);
-			mp4.play();
+			video.play();
 		});
 	}
 };
 
-const createAudioContainer = (quizCode, questionId, isAnswer = false) => {
-	const mp3 = document.createElement('audio');
-	mp3.setAttribute('controls', 'controls');
-	mp3.className = 'question-audio';
-	const lastPart = (isAnswer) ? 'a.mp3' : '.mp3';
-	mp3.src = 'pytania/' + quizCode + '/' + questionId + lastPart;
+const createAudioContainer = (data) => {
+	const audio = document.createElement('audio');
+	audio.setAttribute('controls', 'controls');
+	audio.className = 'question-audio';
+	const lastPart = (data.isAnswer) ? 'a.' + data.type : '.' + data.type;
+	audio.src = 'pytania/' + data.code + '/' + data.id + lastPart;
 	const audioContainer = $('#audio-container');
 	audioContainer.empty();
-	audioContainer.append(mp3);
+	audioContainer.append(audio);
 	showEl(audioContainer);
 };
 
@@ -390,12 +389,12 @@ const showAnswer = (question) => {
 		$('#question-text').html(question.answerText);
 	}
 	showEl('#question-text');
-	if (Quiz.imageTypes.includes(question.answerType)) {
+	if (Quiz.imageTypes.includes(question.answerType.toLowerCase().trim())) {
 		createImageContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
-	} else if (question.answerType == 'mp4') {
-		createVideoContainer(Quiz.code, question.id, true);
-	} else if (question.answerType == 'mp3') {
-		createAudioContainer(Quiz.code, question.id, true);
+	} else if (Quiz.videoTypes.includes(question.answerType.toLowerCase().trim())) {
+		createVideoContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
+	} else if (Quiz.audioTypes.includes(question.answerType.toLowerCase().trim())) {
+		createAudioContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
 	}
 };
 
