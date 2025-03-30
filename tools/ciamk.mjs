@@ -252,7 +252,7 @@ const importNewQuiz = async (rl) => {
                         while (!json.title) {
                             json.title = (await rl.question('Tytuł konkursu? > ')).trim();
                         }
-                        const jsonString = JSON.stringify(json);
+                        const jsonString = JSON.stringify(json).replace(/"/g, '\\"');
                         const fileContents = `if (typeof KTron != 'undefined' && typeof KTron['quizzes'] != 'undefined') {
         KTron.quizzes.push(JSON.parse('${jsonString}'));
     }\n`;
@@ -282,7 +282,7 @@ const rl = readline.createInterface({
     console.clear();
     let answer = '';
     while (answer.toLowerCase() !== 'q') {
-        console.warn('\nCiamk 1.0-Beta');
+        console.warn('\nCiamk 1.1-Beta');
         console.info('1 - Dodaj nowy konkurs');
         console.info('2 - Usuń konkurs z listy');
         console.info('3 - Migruj istniejące konkursy z wersji 2.x');
