@@ -1,7 +1,8 @@
 const DB = {
 
 	dBase: new localStorageDB('konkursotron', localStorage),
-	version: '3.0',
+	version: '3.1.0',
+	migration_versions: ['3.1.0'],
 
 	Players: 'players',
 	Games: 'games',
@@ -10,6 +11,7 @@ const DB = {
 	Points: 'points',
 	Overtime: 'overtime',
 	DatabaseVersion: 'database_version',
+	Settings: 'settings',
 
 	createDB: function() {
 		this.createTableIfNotExists(this.Players, ['name', 'order']);
@@ -19,6 +21,7 @@ const DB = {
 		this.createTableIfNotExists(this.Points, ['id_player', 'points', 'cancelled', 'overtime']);
 		this.createTableIfNotExists(this.Overtime, ['data']);
 		this.createTableIfNotExists(this.DatabaseVersion, ['version']);
+		
 		this.dBase.insert(this.DatabaseVersion, {version: this.version});
 		this.dBase.commit();	
 	},
@@ -33,11 +36,43 @@ const DB = {
 		if (!this.dBase.tableExists(this.DatabaseVersion)) {
 			this.totalReset(false);
 		} else {
-			const version = this.dBase.queryAll(this.DatabaseVersion)[0].version;
-			if (version != this.version) {
-				this.totalReset(false);
+			const currentVersion = this.getDBVersion();
+			if (currentVersion != this.version) {
+				this.migrate(currentVersion);
 			}
 		}
+	},
+
+	getDBVersion: function () {
+		let version = this.dBase.queryAll(this.DatabaseVersion)[0].version;
+		if (version.match(/^\d\.\d$/)) {
+			version += '.0';
+		}
+		return version;
+	},
+
+	migrate: function(currentVersion) {
+		this.migration_versions.forEach((migrationVersion) => {
+			if (currentVersion >= migrationVersion) {
+				return;
+			}
+			switch (migrationVersion) {
+				default:
+			}
+			this.dBase.update(this.DatabaseVersion, null, (row) => { row.version = migrationVersion; return row; });
+			this.dBase.commit();
+		});
+	},
+
+	padVersion: function(version) {
+		if (version.match(/^\d\.\d$/)) {
+			return version += '.0';
+		}
+		return version;
+	},
+
+	getSettings: function() {
+		return this.dBase.queryAll(this.Settings, {query: {ID: 1}})[0];
 	},
 
 	createPlayer: function(name) {

@@ -43,6 +43,7 @@ const checkQuizProgress = () => {
 };
 
 const restoreGameProgress = (game) => {
+	$('#version-info').hide();
 	showEl('#quiz-info');
 	showEl('#media-container > .quiz-info-line')
 	hideEl('#tools-button');
@@ -103,6 +104,7 @@ const startGameProgress = (quizCode) => {
 		question.used = false;
 	});
 	newQuiz(quizCode);
+	$('#version-info').hide();
 	showEl('#quiz-info');
 	showEl('#media-container > .quiz-info-line');
 	hideEl('#tools-button');
@@ -562,19 +564,52 @@ const showWinner = (places) => {
 	const firstPlace = places[0].pop();
 	const secondPlace = places[1].pop();
 	const thirdPlace = places[2].pop();
+	const victoryImagePath = getVictoryImagePath();
+	const victoryFanfarePath = getVictoryFanfarePath();
 	$('#quiz-info').html('<h2>Zwycięzcą, po bojach i znojach, zostaje:</h2><h1><strong style="color: darkorange;">'
 		+ firstPlace.name.toUpperCase() + '</strong></h1><h2>zdobywszy ' + firstPlace.points + ' ' + pointsToWords(firstPlace.points) + '!' + ` <span style="font-size: small;">${formatOvertimePoints(firstPlace.overtimePoints)}</span>`
 		+ '</h2><h2>Gratulacje od samego Nicolasa Cage\'a!</h2>'
-		+ '<div class="mg-b-10"><img src="res/victory.jpg" /></div>'
+		+ `<div class="mg-b-10"><img src="${victoryImagePath}" id="victory-image" /></div>`
 		+ '<h4>Miejsce drugie: <strong>' + secondPlace.name + '</strong> (' + secondPlace.points + ' ' + pointsToWords(secondPlace.points) + ')' + ` <span style="font-size: small;">${formatOvertimePoints(secondPlace.overtimePoints)}</span>` + '</h4>'
 		+ '<h5>Miejsce trzecie: <strong>' + thirdPlace.name + '</strong> (' + thirdPlace.points + ' ' + pointsToWords(thirdPlace.points) + ')' + ` <span style="font-size: small;">${formatOvertimePoints(thirdPlace.overtimePoints)}</span>` + '</h5>'
 	);
+	const victoryImage = document.getElementById('victory-image');
+	victoryImage.onerror = () => {
+		victoryImage.onerror = null;
+		victoryImage.src = `res/${UI.defaults.VICTORY_IMAGE}.png`;
+	};
+	victoryImage.onload = () => {
+		victoryImage.onload = null;
+		victoryImage.onerror = null;
+	};
 	showEl('#quiz-info');
-	var mp3 = document.createElement('audio');
+	const mp3 = document.createElement('audio');
 	mp3.style.display = 'none';
-	mp3.src = 'res/victory.mp3';
+	mp3.onerror = () => {
+		const defaultMp3 = document.createElement('audio');
+		defaultMp3.src = `res/${UI.defaults.VICTORY_FANFARE}.mp3`;
+		$('#quiz-info').append(defaultMp3);
+		defaultMp3.play();
+	};
+	mp3.src = victoryFanfarePath;
 	$('#quiz-info').append(mp3);
 	mp3.play();
+};
+
+const getVictoryImagePath = () => {
+	if (Quiz.settings.useCustomVictoryImage) {
+		return `res/custom/victory.png`;
+	} else {
+		return `res/${UI.defaults.VICTORY_IMAGE}.png`;
+	}
+};
+
+const getVictoryFanfarePath = () => {
+	if (Quiz.settings.useCustomVictoryFanfare) {
+		return `res/custom/fanfare.mp3`;
+	} else {
+		return `res/${UI.defaults.VICTORY_FANFARE}.mp3`;
+	}
 };
 
 const getNextPlayer = () => {

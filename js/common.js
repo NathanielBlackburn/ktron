@@ -235,7 +235,7 @@ const bindKeypress = () => {
 	$(document).on('keyup', (event) => {
 		if (event.shiftKey && event.code == 'KeyP' && Quiz.inProgress) {
 			togglePointsModal();
-		} else if (event.shiftKey && event.altKey && event.code == 'KeyR') {
+		} else if (event.shiftKey && event.altKey && event.code == 'KeyQ') {
 			if (confirm('Ar ju siur?')) {
 				DB.purge();
 			}
@@ -255,6 +255,8 @@ const setupSettings = () => {
 	document.querySelector('#settingsOneHalfPoint').checked = Quiz.settings.buttonOneHalf;
 	document.querySelector('#settingsTwoPoints').checked = Quiz.settings.buttonTwo;
 	document.querySelector('#settingsShowPointsAfterEachRound').checked = Quiz.settings.showPointsAfterEachRound;
+	document.querySelector('#settingsUseCustomVictoryImage').checked = Quiz.settings.useCustomVictoryImage;
+	document.querySelector('#settingsUseCustomVictoryFanfare').checked = Quiz.settings.useCustomVictoryFanfare;
 };
 
 const settingsToggle = (target) => {
@@ -274,7 +276,36 @@ const settingsToggle = (target) => {
 		case 'settingsShowPointsAfterEachRound':
 			Quiz.settings.showPointsAfterEachRound = target.checked;
 			break;
+		case 'settingsUseCustomVictoryImage':
+			Quiz.settings.useCustomVictoryImage = target.checked;
+			break;
+		case 'settingsUseCustomVictoryFanfare':
+			Quiz.settings.useCustomVictoryFanfare = target.checked;
+			break;
 	}
+};
+
+const changeLogo = (target) => {
+	Quiz.settings.logo = target.value;
+	loadLogo();
+};
+
+const loadLogo = () => {
+	const logo = Quiz.settings.logo;
+	const path = (logo == 'custom') ? `res/custom/logo.png` : `res/logo/${logo}.png`;
+	const logoImg = document.getElementById('logo-image');
+	logoImg.src = path;
+	document.getElementById('logo-list').value = logo;
+	logoImg.onerror = () => {
+		showToast('Nie znaleziono pliku logo.png w katalogu res/custom.', 'error');
+		logoImg.onerror = null;
+		logoImg.src = `res/logo/${UI.defaults.LOGO_IMAGE}.png`;
+		document.getElementById('logo-list').value = UI.defaults.LOGO_IMAGE;
+	};
+	logoImg.onload = () => {
+		logoImg.onload = null;
+		logoImg.onerror = null;
+	};
 };
 
 const init = () => {
@@ -342,7 +373,7 @@ const showToast = (text, type = 'info') => {
 			$('#quiz-toast strong.toast-title').text('Info');
 	}
 	const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toast);
-	toastBootstrap.show()
+	toastBootstrap.show();
 };
 
 const showEl = (selector) => {
@@ -359,5 +390,7 @@ $(() => {
 	if (KTron && KTron.quizzes) {
 		window['questions'] = KTron.quizzes;
 	}
+	loadLogo();
 	loadQuestions();
+	$('#version-info').text('v' + DB.version);
 });

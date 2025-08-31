@@ -19,6 +19,15 @@ class Settings {
         if (typeof this.storage['showPointsAfterEachRound'] === 'undefined') {
             this.showPointsAfterEachRound = false;
         }
+        if (typeof this.storage['useCustomVictoryImage'] === 'undefined') {
+            this.useCustomVictoryImage = false;
+        }
+        if (typeof this.storage['useCustomVictoryFanfare'] === 'undefined') {
+            this.useCustomVictoryFanfare = false;
+        }
+        if (typeof this.storage['logo'] === 'undefined') {
+            this.logo = UI.defaults.LOGO_IMAGE;
+        }
     }
 
     get storage() {
@@ -69,5 +78,37 @@ class Settings {
 
     set showPointsAfterEachRound(value) {
         this.writeToStorage('showPointsAfterEachRound', value);
+    }
+
+    get showPointsAfterEachRound() {
+        return this.storage.showPointsAfterEachRound;
+    }
+
+    set showPointsAfterEachRound(value) {
+        this.writeToStorage('showPointsAfterEachRound', value);
+    }
+
+    get useCustomVictoryImage() {
+        return this.storage.useCustomVictoryImage;
+    }
+
+    set useCustomVictoryImage(value) {
+        this.writeToStorage('useCustomVictoryImage', value);
+    }
+
+    get useCustomVictoryFanfare() {
+        return this.storage.useCustomVictoryFanfare;
+    }
+
+    set useCustomVictoryFanfare(value) {
+        this.writeToStorage('useCustomVictoryFanfare', value);
+    }
+
+    get logo() {
+        return this.storage.logo;
+    }
+
+    set logo(value) {
+        this.writeToStorage('logo', value);
     }
 }

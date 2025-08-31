@@ -117,8 +117,12 @@ button.rounded {
 	float: left;
 }
 
-.quiz-main-logo {
+/* .quiz-main-logo {
 	min-height: 450px;
+} */
+
+#logo-image {
+	border-radius: 20px;
 }
 
 /* #player-choice { */
@@ -413,4 +417,9 @@ span.d-none {
 
 .toast-icon-error {
 	background: red;
+}
+
+#version-info {
+	color: lightgray;
+	font-size: 0.8em;
 }
