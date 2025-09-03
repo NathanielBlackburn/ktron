@@ -1,13 +1,22 @@
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
+import * as path from "node:path";
 import * as readline from 'node:readline/promises';
-// import * as path from 'node:path';
 // import { EOL } from "node:os";
 // const SEP = path.sep;
-// console.log(EOL);
+
+const MEDIATYPES = {
+	image: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+	audio: ['mp3', 'm4a'],
+	video: ['mp4']
+};
 
 const padId = (id) => {
-    return id.toString().padStart(3, '0');
+    let result = id;
+    while (!/^\d{3}/.test(result)) {
+        result = '0' + result;
+    }
+    return result;
 };
 
 const range = (start, length) => {
@@ -92,9 +101,9 @@ const removeCodeFromQuizFiles = async (rl) => {
 
 const migrateOldQuizes = async (rl) => {
     const logs = [];
-    const path = './pytania/js';
-    if (fs.existsSync(path)) {
-        const files = fs.readdirSync(path, {withFileTypes: true});
+    const pathName = './pytania/js';
+    if (fs.existsSync(pathName)) {
+        const files = fs.readdirSync(pathName, {withFileTypes: true});
         for (const file of files) {
             if (file.name.endsWith('.js')) {
                 const filePath = `${file.parentPath}/${file.name}`;
@@ -120,12 +129,35 @@ const migrateOldQuizes = async (rl) => {
     printLogs(logs);
 };
 
+const findFile = (pathName, id, mediaType, context = 'question') => {
+    const suffix = (context == 'answer') ? 'a' : '';
+    const extensions = MEDIATYPES[mediaType];
+    const candidates = extensions.flatMap((ext) => {
+        return [
+            `${id}${suffix}.${ext.toLowerCase()}`, `${id.substring(1, 3)}${suffix}.${ext.toLowerCase()}`, `${id.substring(2, 3)}${suffix}.${ext.toLowerCase()}`,
+            `${id}${suffix}.${ext.toUpperCase()}`, `${id.substring(1, 3)}${suffix}.${ext.toUpperCase()}`, `${id.substring(2, 3)}${suffix}.${ext.toUpperCase()}`
+        ];
+    });
+    const found = candidates.find((candidate) => {
+        return fs.existsSync(`${pathName}/${candidate}`);
+    });
+    return found ? `${pathName}/${found}` : undefined;
+};
+
+const normaliseFileName = (filePath) => {
+    const ext = path.extname(filePath);
+    const fileName = path.basename(filePath, ext);
+    const dir = path.dirname(filePath);
+    const newPath = `${dir}/${padId(fileName)}${ext.toLowerCase()}`;
+    fs.renameSync(filePath, filePath + '_temp');
+    fs.renameSync(filePath + '_temp', newPath);
+    return newPath;
+};
+
 const verifyMedia = async (code, questions) => {
-    const images = ['png', 'gif', 'jpg', 'jpeg', 'webp'];
-    const audio = ['mp3', 'm4a'];
-    const video = ['mp4'];
-    const path = `./pytania/${code}`;
+    const pathName = `./pytania/${code}`;
     let errors = [];
+    let warnings = [];
     let ids = [];
     let foundFiles = [];
     questions.forEach((question) => {
@@ -133,46 +165,26 @@ const verifyMedia = async (code, questions) => {
             errors.push(`Powtórzone id pytania: ${question.id}`);
         }
         ids.push(question.id);
-        // TODO: Check other type extensions and change file name accordingly?
-        // TODO: Make file names case insensitive
         if (question.questionType) {
-            const questionTypeFile = `${question.id}.${question.questionType}`;
-            const omittedFirstLetterFile = `${question.id.substring(1, 3)}.${question.questionType}`;
-            const omittedFirstTwoLettersFile = `${question.id.substring(2, 3)}.${question.questionType}`;
-            if (!fs.existsSync(`${path}/${questionTypeFile}`)) {
-                if (fs.existsSync(`${path}/${omittedFirstLetterFile}`)) {
-                    fs.renameSync(`${path}/${omittedFirstLetterFile}`, `${path}/${questionTypeFile}`);
-                    foundFiles.push(questionTypeFile);
-                } else if (fs.existsSync(`${path}/${omittedFirstTwoLettersFile}`)) {
-                    fs.renameSync(`${path}/${omittedFirstTwoLettersFile}`, `${path}/${questionTypeFile}`);
-                    foundFiles.push(questionTypeFile);
-                } else {
-                    errors.push(`Brak pliku: ${questionTypeFile}`);
-                }
+            const foundFile = findFile(pathName, question.id, question.questionType, 'question');
+            if (foundFile) {
+                const newPath = normaliseFileName(foundFile);
+                foundFiles.push(path.basename(newPath));
             } else {
-                foundFiles.push(questionTypeFile);
+                errors.push(`Brak pliku: ${question.id}`);
             }
         }
         if (question.answerType) {
-            const answerTypeFile = `${question.id}a.${question.answerType}`;
-            const omittedFirstLetterFile = `${question.id.substring(1, 3)}a.${question.answerType}`;
-            const omittedFirstTwoLettersFile = `${question.id.substring(2, 3)}a.${question.answerType}`;
-            if (!fs.existsSync(`${path}/${answerTypeFile}`)) {
-                if (fs.existsSync(`${path}/${omittedFirstLetterFile}`)) {
-                    fs.renameSync(`${path}/${omittedFirstLetterFile}`, `${path}/${answerTypeFile}`);
-                    foundFiles.push(answerTypeFile);
-                } else if (fs.existsSync(`${path}/${omittedFirstTwoLettersFile}`)) {
-                    fs.renameSync(`${path}/${omittedFirstTwoLettersFile}`, `${path}/${answerTypeFile}`);
-                    foundFiles.push(answerTypeFile);
-                } else {
-                    errors.push(`Brak pliku: ${answerTypeFile}`);
-                }
+            const foundFile = findFile(pathName, question.id, question.answerType, 'answer');
+            if (foundFile) {
+                const newPath = normaliseFileName(foundFile);
+                foundFiles.push(path.basename(newPath));
             } else {
-                foundFiles.push(answerTypeFile);
+                errors.push(`Brak pliku: ${question.id}`);
             }
         }
     });
-    let allFiles = fs.readdirSync(path, {withFileTypes: true});
+    let allFiles = fs.readdirSync(pathName, {withFileTypes: true});
     allFiles = allFiles.filter((file) => {
         return !foundFiles.includes(file.name)
             && !file.name.endsWith('.csv')
@@ -180,11 +192,11 @@ const verifyMedia = async (code, questions) => {
     });
     if (allFiles.length) {
         allFiles.forEach((file) => {
-            errors.push(`Nadmiarowy plik: ${file.name}`);
+            warnings.push(`Nadmiarowy plik: ${file.name}`);
         });
     }
     if (errors.length) {
-        return {errors: errors, success: false};
+        return {success: false, warnings: warnings, errors: errors};
     } else {
         return {success: true};
     }
@@ -192,9 +204,9 @@ const verifyMedia = async (code, questions) => {
 
 const importNewQuiz = async (rl) => {
     let logs = [];
-    const path = './pytania';
-    if (fs.existsSync(path)) {
-        const files = fs.readdirSync(path, {withFileTypes: true});
+    const pathName = './pytania';
+    if (fs.existsSync(pathName)) {
+        const files = fs.readdirSync(pathName, {withFileTypes: true});
         const dirs = files.filter((file) => file.isDirectory() && file.name != 'js');
         if (dirs.length) {
             console.warn('\nDodanie nowego konkursu');
@@ -214,7 +226,7 @@ const importNewQuiz = async (rl) => {
                 return;
             } else {
                 const code = dirs[parseInt(choice) - 1].name;
-                const filesInDir = fs.readdirSync(`${path}/${code}`, {withFileTypes: true});
+                const filesInDir = fs.readdirSync(`${pathName}/${code}`, {withFileTypes: true});
                 const csvFiles = filesInDir.filter((file) => file.name.endsWith('.csv'));
                 if (!csvFiles.length) {
                     logs.push(`W katalogu {pytania/${code}} nie znaleziono pliku csv`);
@@ -225,8 +237,6 @@ const importNewQuiz = async (rl) => {
                     const json = {};
                     json['code'] = code;
                     json['questions'] = [];
-                    // TODO: Handle both file extensions and media types, change the former to media types
-                    // TODO: Handle the "same" type?
                     // TODO: Handle HTML tags
                     // TODO: Handle the [spoiler] prefix
                     records.forEach((rec) => {
@@ -261,6 +271,7 @@ const importNewQuiz = async (rl) => {
                         logs.push(`\nKonkurs ${code} poprawnie zaimportowany`);
                     } else {
                         logs = logs.concat(verificationResult.errors);
+                        logs = logs.concat(verificationResult.warnings);
                     }
                 }
             }
