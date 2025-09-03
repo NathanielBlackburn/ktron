@@ -6,9 +6,9 @@ import * as readline from 'node:readline/promises';
 // const SEP = path.sep;
 
 const MEDIATYPES = {
-	image: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-	audio: ['mp3', 'm4a'],
-	video: ['mp4']
+    image: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+    audio: ['mp3', 'm4a'],
+    video: ['mp4']
 };
 
 const padId = (id) => {
@@ -43,7 +43,7 @@ const addCodeToQuizFiles = async (code) => {
     const quizFilesPath = './js/quizFiles.js';
     let codes;
     if (fs.existsSync(quizFilesPath)) {
-        const quizFiles = fs.readFileSync(quizFilesPath).toString();        
+        const quizFiles = fs.readFileSync(quizFilesPath).toString();
         const matches = quizFiles.match(/.+(\[.+\])/);
         if (matches) {
             codes = JSON.parse(matches[1]);
@@ -57,7 +57,7 @@ const addCodeToQuizFiles = async (code) => {
         codes = [code];
     }
     const quizFilesContent = `const ktronQuizFiles = ${JSON.stringify(codes)};`;
-    fs.writeFileSync(quizFilesPath, quizFilesContent);  
+    fs.writeFileSync(quizFilesPath, quizFilesContent);
 };
 
 const removeCodeFromQuizFiles = async (rl) => {
@@ -67,7 +67,7 @@ const removeCodeFromQuizFiles = async (rl) => {
         const quizFiles = fs.readFileSync(quizFilesPath).toString();
         const matches = quizFiles.match(/.+(\[.+\])/);
         if (!matches) {
-            logs.push({log: '\nLista konkursów jest pusta.', type: 'error'});
+            logs.push({ log: '\nLista konkursów jest pusta.', type: 'error' });
         } else {
             let codes = JSON.parse(matches[1]);
             console.warn('\nUsuwanie quizu z aplikacji');
@@ -90,11 +90,11 @@ const removeCodeFromQuizFiles = async (rl) => {
                 codes = codes.filter((existingCode) => existingCode != code);
                 const quizFilesContent = `const ktronQuizFiles = ${JSON.stringify(codes)};`;
                 fs.writeFileSync(quizFilesPath, quizFilesContent);
-                logs.push({log: `\nUsunięto: ${code}`, type: 'warn'});
+                logs.push({ log: `\nUsunięto: ${code}`, type: 'warn' });
             }
         }
     } else {
-        logs.push({log: '\nLista konkursów jeszcze nie stworzona!', type: 'error'});
+        logs.push({ log: '\nLista konkursów jeszcze nie stworzona!', type: 'error' });
     }
     printLogs(logs);
 };
@@ -103,7 +103,7 @@ const migrateOldQuizes = async (rl) => {
     const logs = [];
     const pathName = './pytania/js';
     if (fs.existsSync(pathName)) {
-        const files = fs.readdirSync(pathName, {withFileTypes: true});
+        const files = fs.readdirSync(pathName, { withFileTypes: true });
         for (const file of files) {
             if (file.name.endsWith('.js')) {
                 const filePath = `${file.parentPath}/${file.name}`;
@@ -114,9 +114,9 @@ const migrateOldQuizes = async (rl) => {
                     if (fs.existsSync(`./pytania/${code}`)) {
                         fs.cpSync(filePath, `./pytania/${code}/${code}.js`);
                         await addCodeToQuizFiles(code);
-                        logs.push({log: `Zmigrowano: ${code}`, type: 'warn'});
+                        logs.push({ log: `Zmigrowano: ${code}`, type: 'warn' });
                     } else {
-                        logs.push({log: `Znaleziono konkurs o kodzie ${code}, ale w katalogu "pytania" brak folderu ${code}`, type: 'error'});
+                        logs.push({ log: `Znaleziono konkurs o kodzie ${code}, ale w katalogu "pytania" brak folderu ${code}`, type: 'error' });
                     }
                 } else {
                     logs.push(`Plik ${filePath} wydaje się wadliwy.`);
@@ -124,7 +124,7 @@ const migrateOldQuizes = async (rl) => {
             }
         }
     } else {
-        logs.push({log: 'Nie znaleziono katalogu z quizami z poprzedniej wersji Konkursotrona (katalogu {pytania/js})', type: 'error'});
+        logs.push({ log: 'Nie znaleziono katalogu z quizami z poprzedniej wersji Konkursotrona (katalogu {pytania/js})', type: 'error' });
     }
     printLogs(logs);
 };
@@ -169,6 +169,7 @@ const verifyMedia = async (code, questions) => {
             const foundFile = findFile(pathName, question.id, question.questionType, 'question');
             if (foundFile) {
                 const newPath = normaliseFileName(foundFile);
+                question.questionType = path.extname(newPath).replace('.', '');
                 foundFiles.push(path.basename(newPath));
             } else {
                 errors.push(`Brak pliku: ${question.id}`);
@@ -178,13 +179,14 @@ const verifyMedia = async (code, questions) => {
             const foundFile = findFile(pathName, question.id, question.answerType, 'answer');
             if (foundFile) {
                 const newPath = normaliseFileName(foundFile);
+                question.answerType = path.extname(newPath).replace('.', '');
                 foundFiles.push(path.basename(newPath));
             } else {
                 errors.push(`Brak pliku: ${question.id}`);
             }
         }
     });
-    let allFiles = fs.readdirSync(pathName, {withFileTypes: true});
+    let allFiles = fs.readdirSync(pathName, { withFileTypes: true });
     allFiles = allFiles.filter((file) => {
         return !foundFiles.includes(file.name)
             && !file.name.endsWith('.csv')
@@ -196,17 +198,41 @@ const verifyMedia = async (code, questions) => {
         });
     }
     if (errors.length) {
-        return {success: false, warnings: warnings, errors: errors};
+        return { success: false, warnings: warnings, errors: errors };
     } else {
-        return {success: true};
+        return { success: true };
     }
+};
+
+const checkCSVColumns = (rec) => {
+    const fields = ['question', 'questionType', 'answer', 'answerType'];
+    return fields.every((field) => typeof rec[field] !== 'undefined');
+};
+
+const normaliseMediaType = (question) => {
+    let result = structuredClone(question);
+    if (MEDIATYPES.image.includes(result.questionType)) {
+        result.questionType = 'image';
+    } else if (MEDIATYPES.audio.includes(result.questionType)) {
+        result.questionType = 'audio';
+    } else if (MEDIATYPES.video.includes(result.questionType)) {
+        result.questionType = 'video';
+    }
+    if (MEDIATYPES.image.includes(result.answerType)) {
+        result.answerType = 'image';
+    } else if (MEDIATYPES.audio.includes(result.answerType)) {
+        result.answerType = 'audio';
+    } else if (MEDIATYPES.video.includes(result.answerType)) {
+        result.answerType = 'video';
+    }
+    return result;
 };
 
 const importNewQuiz = async (rl) => {
     let logs = [];
     const pathName = './pytania';
     if (fs.existsSync(pathName)) {
-        const files = fs.readdirSync(pathName, {withFileTypes: true});
+        const files = fs.readdirSync(pathName, { withFileTypes: true });
         const dirs = files.filter((file) => file.isDirectory() && file.name != 'js');
         if (dirs.length) {
             console.warn('\nDodanie nowego konkursu');
@@ -225,61 +251,69 @@ const importNewQuiz = async (rl) => {
             if (choice == 'q') {
                 return;
             } else {
-                const code = dirs[parseInt(choice) - 1].name;
-                const filesInDir = fs.readdirSync(`${pathName}/${code}`, {withFileTypes: true});
-                const csvFiles = filesInDir.filter((file) => file.name.endsWith('.csv'));
-                if (!csvFiles.length) {
-                    logs.push(`W katalogu {pytania/${code}} nie znaleziono pliku csv`);
-                } else {
-                    const selectedCsvFile = csvFiles[0];
-                    const csvFileContents = fs.readFileSync(`${selectedCsvFile.parentPath}/${selectedCsvFile.name}`);
-                    const records = parse(csvFileContents, { columns: true });
-                    const json = {};
-                    json['code'] = code;
-                    json['questions'] = [];
-                    // TODO: Handle HTML tags
-                    // TODO: Handle the [spoiler] prefix
-                    records.forEach((rec) => {
-                        let question = {
-                            id: padId(rec.id),
-                            questionText: rec.question.trim(),
-                            questionType: rec.questionType.trim(),
-                            answerText: rec.answer.trim(),
-                            answerType: rec.answerType.trim(),
-                        };
-                        if (typeof rec.category !== 'undefined' && rec.category.trim()) {
-                            question['category'] = rec.category.trim();
-                        }
-                        json.questions.push(question);
-                    });
-                    const verificationResult = await verifyMedia(code, json.questions);
-                    if (verificationResult.success) {
-                        json['author'] = '';
-                        json['title'] = '';
-                        while (!json.author) {
-                            json.author = (await rl.question('Autor konkursu? > ')).trim();
-                        }
-                        while (!json.title) {
-                            json.title = (await rl.question('Tytuł konkursu? > ')).trim();
-                        }
-                        const jsonString = JSON.stringify(json).replace(/"/g, '\\"');
-                        const fileContents = `if (typeof KTron != 'undefined' && typeof KTron['quizzes'] != 'undefined') {
+                try {
+                    const code = dirs[parseInt(choice) - 1].name;
+                    const filesInDir = fs.readdirSync(`${pathName}/${code}`, { withFileTypes: true });
+                    const csvFiles = filesInDir.filter((file) => file.name.endsWith('.csv'));
+                    if (!csvFiles.length) {
+                        logs.push(`W katalogu {pytania/${code}} nie znaleziono pliku csv`);
+                    } else {
+                        const selectedCsvFile = csvFiles[0];
+                        const csvFileContents = fs.readFileSync(`${selectedCsvFile.parentPath}/${selectedCsvFile.name}`);
+                        const records = parse(csvFileContents, { columns: true });
+                        const json = {};
+                        json['code'] = code;
+                        json['questions'] = [];
+                        // TODO: Handle HTML tags
+                        // TODO: Handle the [spoiler] prefix
+                        records.forEach((rec, index) => {
+                            if (!checkCSVColumns(rec)) {
+                                throw new Error('Niepoprawne nagłówki kolumn w pliku csv.');
+                            }
+                            let question = {
+                                id: padId((index + 1).toString()),
+                                questionText: rec.question.trim(),
+                                questionType: rec.questionType.trim(),
+                                answerText: rec.answer.trim(),
+                                answerType: rec.answerType.trim(),
+                            };
+                            question = normaliseMediaType(question);
+                            if (typeof rec.category !== 'undefined' && rec.category.trim()) {
+                                question['category'] = rec.category.trim();
+                            }
+                            json.questions.push(question);
+                        });
+                        const verificationResult = await verifyMedia(code, json.questions);
+                        if (verificationResult.success) {
+                            json['author'] = '';
+                            json['title'] = '';
+                            while (!json.author) {
+                                json.author = (await rl.question('Autor konkursu? > ')).trim();
+                            }
+                            while (!json.title) {
+                                json.title = (await rl.question('Tytuł konkursu? > ')).trim();
+                            }
+                            const jsonString = JSON.stringify(json).replace(/"/g, '\\"');
+                            const fileContents = `if (typeof KTron != 'undefined' && typeof KTron['quizzes'] != 'undefined') {
         KTron.quizzes.push(JSON.parse('${jsonString}'));
     }\n`;
-                        fs.writeFileSync(`./pytania/${code}/${code}.js`, fileContents);
-                        await addCodeToQuizFiles(code);
-                        logs.push(`\nKonkurs ${code} poprawnie zaimportowany`);
-                    } else {
-                        logs = logs.concat(verificationResult.errors);
-                        logs = logs.concat(verificationResult.warnings);
+                            fs.writeFileSync(`./pytania/${code}/${code}.js`, fileContents);
+                            await addCodeToQuizFiles(code);
+                            logs.push(`\nKonkurs ${code} poprawnie dodany`);
+                        } else {
+                            logs = logs.concat(verificationResult.errors);
+                            logs = logs.concat(verificationResult.warnings);
+                        }
                     }
+                } catch (error) {
+                    logs.push({ log: error.message, type: 'error' });
                 }
             }
         } else {
             logs.push('W katalogu {pytania} nie znaleziono żadnego podkatalogu');
         }
     } else {
-        logs.push({log: 'Katalog {pytania} nie istnieje!', type: 'error'});
+        logs.push({ log: 'Katalog {pytania} nie istnieje!', type: 'error' });
     }
     printLogs(logs);
 };
@@ -293,7 +327,7 @@ const rl = readline.createInterface({
     console.clear();
     let answer = '';
     while (answer.toLowerCase() !== 'q') {
-        console.warn('\nCiamk 1.1-Beta');
+        console.warn('\nCiamk 1.2');
         console.info('1 - Dodaj nowy konkurs');
         console.info('2 - Usuń konkurs z listy');
         console.info('3 - Migruj istniejące konkursy z wersji 2.x');
