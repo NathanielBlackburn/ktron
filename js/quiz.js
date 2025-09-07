@@ -278,6 +278,12 @@ const endQuiz = (automatic = false, places = null) => {
 	}
 };
 
+const arrayIntersection = (arr1, arr2) => {
+	const set1 = new Set(arr1);
+	const set2 = new Set(arr2);
+	return Array.from(set1.intersection(set2));
+};
+
 const showQuestion = (question) => {
 	debug('This question: ');
 	debug(question);
@@ -293,12 +299,18 @@ const showQuestion = (question) => {
 		$('#cat-text').html('Kategoria: ' + question.category);
 		showEl('#cat-text');
 	}
-	if (Quiz.imageTypes.includes(question.questionType.toLowerCase().trim())) {
-		createImageContainer({code: Quiz.code, id: question.id, type: question.questionType, isAnswer: false});
-	} else if (Quiz.videoTypes.includes(question.questionType.toLowerCase().trim())) {
-		createVideoContainer({code: Quiz.code, id: question.id, type: question.questionType, isAnswer: false});
-	} else if (Quiz.audioTypes.includes(question.questionType.toLowerCase().trim())) {
-		createAudioContainer({code: Quiz.code, id: question.id, type: question.questionType, isAnswer: false});
+	const questionMediaTypes = question.questionType.toLowerCase().trim().split('|');
+	let intersection = arrayIntersection(Quiz.imageTypes, questionMediaTypes);
+	if (intersection.length) {
+		createImageContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: false});
+	}
+	intersection = arrayIntersection(Quiz.audioTypes, questionMediaTypes);
+	if (intersection.length) {
+		createAudioContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: false});
+	}
+	intersection = arrayIntersection(Quiz.videoTypes, questionMediaTypes);
+	if (intersection.length) {
+		createVideoContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: false});
 	}
 };
 
@@ -391,12 +403,18 @@ const showAnswer = (question) => {
 		$('#question-text').html(question.answerText);
 	}
 	showEl('#question-text');
-	if (Quiz.imageTypes.includes(question.answerType.toLowerCase().trim())) {
+	const answerMediaTypes = question.answerType.toLowerCase().trim().split('|');
+	let intersection = arrayIntersection(Quiz.imageTypes, answerMediaTypes);
+	if (intersection.length) {
 		createImageContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
-	} else if (Quiz.videoTypes.includes(question.answerType.toLowerCase().trim())) {
-		createVideoContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
-	} else if (Quiz.audioTypes.includes(question.answerType.toLowerCase().trim())) {
+	}
+	intersection = arrayIntersection(Quiz.audioTypes, answerMediaTypes);
+	if (intersection.length) {
 		createAudioContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
+	}
+	intersection = arrayIntersection(Quiz.videoTypes, answerMediaTypes);
+	if (intersection.length) {
+		createVideoContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
 	}
 };
 

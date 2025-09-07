@@ -1,3 +1,5 @@
+const CIAMK_VERSION = '1.3.0';
+
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
 import * as path from "node:path";
@@ -166,23 +168,37 @@ const verifyMedia = async (code, questions) => {
         }
         ids.push(question.id);
         if (question.questionType) {
-            const foundFile = findFile(pathName, question.id, question.questionType, 'question');
-            if (foundFile) {
-                const newPath = normaliseFileName(foundFile);
-                question.questionType = path.extname(newPath).replace('.', '');
-                foundFiles.push(path.basename(newPath));
-            } else {
-                errors.push(`Brak pliku: ${question.id}`);
+            const questionMediaTypes = question.questionType.split('|');
+            const resultQuestionTypes = [];
+            questionMediaTypes.forEach((mediaType) => {
+                const foundFile = findFile(pathName, question.id, mediaType, 'question');
+                if (foundFile) {
+                    const newPath = normaliseFileName(foundFile);
+                    resultQuestionTypes.push(path.extname(newPath).replace('.', ''));
+                    foundFiles.push(path.basename(newPath));
+                } else {
+                    errors.push(`Brak pliku: ${question.id}`);
+                }
+            });
+            if (resultQuestionTypes.count == questionMediaTypes.count) {
+                question.questionType = resultQuestionTypes.join('|');
             }
         }
         if (question.answerType) {
-            const foundFile = findFile(pathName, question.id, question.answerType, 'answer');
-            if (foundFile) {
-                const newPath = normaliseFileName(foundFile);
-                question.answerType = path.extname(newPath).replace('.', '');
-                foundFiles.push(path.basename(newPath));
-            } else {
-                errors.push(`Brak pliku: ${question.id}`);
+            const answerMediaTypes = question.answerType.split('|');
+            const answerQuestionTypes = [];
+            answerMediaTypes.forEach((mediaType) => {
+                const foundFile = findFile(pathName, question.id, mediaType, 'answer');
+                if (foundFile) {
+                    const newPath = normaliseFileName(foundFile);
+                    answerQuestionTypes.push(path.extname(newPath).replace('.', ''));
+                    foundFiles.push(path.basename(newPath));
+                } else {
+                    errors.push(`Brak pliku: ${question.id}`);
+                }
+            });
+            if (answerQuestionTypes.count == answerMediaTypes.count) {
+                question.answerType = answerQuestionTypes.join('|');
             }
         }
     });
@@ -209,22 +225,46 @@ const checkCSVColumns = (rec) => {
     return fields.every((field) => typeof rec[field] !== 'undefined');
 };
 
+const arrayIntersection = (arr1, arr2) => {
+	const set1 = new Set(arr1);
+	const set2 = new Set(arr2);
+	return Array.from(set1.intersection(set2));
+};
+
 const normaliseMediaType = (question) => {
-    let result = structuredClone(question);
-    if (MEDIATYPES.image.includes(result.questionType)) {
-        result.questionType = 'image';
-    } else if (MEDIATYPES.audio.includes(result.questionType)) {
-        result.questionType = 'audio';
-    } else if (MEDIATYPES.video.includes(result.questionType)) {
-        result.questionType = 'video';
+    const result = structuredClone(question);
+
+    const questionMediaTypes = question.questionType.split('|');
+    let intersection = arrayIntersection(MEDIATYPES.image.concat('image'), questionMediaTypes);
+    const resultQuestionType = [];
+    if (intersection.length) {
+        resultQuestionType.push('image');
     }
-    if (MEDIATYPES.image.includes(result.answerType)) {
-        result.answerType = 'image';
-    } else if (MEDIATYPES.audio.includes(result.answerType)) {
-        result.answerType = 'audio';
-    } else if (MEDIATYPES.video.includes(result.answerType)) {
-        result.answerType = 'video';
+    intersection = arrayIntersection(MEDIATYPES.audio.concat('audio'), questionMediaTypes);
+    if (intersection.length) {
+        resultQuestionType.push('audio');
     }
+    intersection = arrayIntersection(MEDIATYPES.video.concat('video'), questionMediaTypes);
+    if (intersection.length) {
+        resultQuestionType.push('video');
+    }
+    result.questionType = resultQuestionType.join('|');
+
+    const answerMediaTypes = question.answerType.split('|');
+    intersection = arrayIntersection(MEDIATYPES.image.concat('image'), answerMediaTypes);
+    const resultAnswerType = [];
+    if (intersection.length) {
+        resultAnswerType.push('image');
+    }
+    intersection = arrayIntersection(MEDIATYPES.audio.concat('audio'), answerMediaTypes);
+    if (intersection.length) {
+        resultAnswerType.push('audio');
+    }
+    intersection = arrayIntersection(MEDIATYPES.video.concat('video'), answerMediaTypes);
+    if (intersection.length) {
+        resultAnswerType.push('video');
+    }
+    result.answerType = resultAnswerType.join('|');
     return result;
 };
 
@@ -327,7 +367,7 @@ const rl = readline.createInterface({
     console.clear();
     let answer = '';
     while (answer.toLowerCase() !== 'q') {
-        console.warn('\nCiamk 1.2');
+        console.warn(`\nCiamk ${CIAMK_VERSION}`);
         console.info('1 - Dodaj nowy konkurs');
         console.info('2 - Usuń konkurs z listy');
         console.info('3 - Migruj istniejące konkursy z wersji 2.x');
