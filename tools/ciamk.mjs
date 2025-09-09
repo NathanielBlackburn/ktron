@@ -194,7 +194,7 @@ const verifyMedia = async (code, questions) => {
                     answerQuestionTypes.push(path.extname(newPath).replace('.', ''));
                     foundFiles.push(path.basename(newPath));
                 } else {
-                    errors.push(`Brak pliku: ${question.id}`);
+                    errors.push(`Brak pliku: ${question.id}a`);
                 }
             });
             if (answerQuestionTypes.count == answerMediaTypes.count) {
