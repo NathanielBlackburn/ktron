@@ -333,10 +333,10 @@ const importNewQuiz = async (rl) => {
                             while (!json.title) {
                                 json.title = (await rl.question('Tytuł konkursu? > ')).trim();
                             }
-                            const jsonString = JSON.stringify(json).replace(/"/g, '\\"');
+                            const jsonString = JSON.stringify(json, null, 2);
                             const fileContents = `if (typeof KTron != 'undefined' && typeof KTron['quizzes'] != 'undefined') {
-        KTron.quizzes.push(JSON.parse('${jsonString}'));
-    }\n`;
+KTron.quizzes.push(${jsonString});
+}\n`;
                             fs.writeFileSync(`./pytania/${code}/${code}.js`, fileContents);
                             await addCodeToQuizFiles(code);
                             logs.push(`\nKonkurs ${code} poprawnie dodany`);

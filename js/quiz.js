@@ -406,15 +406,15 @@ const showAnswer = (question) => {
 	const answerMediaTypes = question.answerType.toLowerCase().trim().split('|');
 	let intersection = arrayIntersection(Quiz.imageTypes, answerMediaTypes);
 	if (intersection.length) {
-		createImageContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
+		createImageContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: true});
 	}
 	intersection = arrayIntersection(Quiz.audioTypes, answerMediaTypes);
 	if (intersection.length) {
-		createAudioContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
+		createAudioContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: true});
 	}
 	intersection = arrayIntersection(Quiz.videoTypes, answerMediaTypes);
 	if (intersection.length) {
-		createVideoContainer({code: Quiz.code, id: question.id, type: question.answerType, isAnswer: true});
+		createVideoContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: true});
 	}
 };
 
