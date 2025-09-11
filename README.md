@@ -11,7 +11,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 
 # Instalacja - easy mode
 
-1. Na głównej stronie repozytorium (https://github.com/NathanielBlackburn/ktron) kliknij z prawej strony w sekcji "Releases" wersję "3.1.0 Chris Colorado". Na następnej stronie pobierz kod aplikacji linkiem u dołu - "Source code (zip)". Rozpakuj pobrany plik.
+1. Na głównej stronie repozytorium (https://github.com/NathanielBlackburn/ktron) kliknij z prawej strony w sekcji "Releases" wersję "3.1.1 Chris Colorado". Na następnej stronie pobierz kod aplikacji linkiem u dołu - "Source code (zip)". Rozpakuj pobrany plik.
 2. Otworzyć terminal (*PowerShell* lub cmd, nvm nie działa w Git Bashu) i przejść do rozpakowanego katalogu.
 3. Wpisać komendy:  
 **macOS/Linux:**  
@@ -31,7 +31,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 2. W katalogu, gdzie chcemy umieścić aplikację, wpisać komendy:  
 `git clone git@github.com:NathanielBlackburn/ktron.git`  
 `cd ktron`  
-`git checkout v3.1.0`
+`git checkout v3.1.1`
 **macOS/Linux:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  
 `nvm install`  
@@ -51,7 +51,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 4. Jeśli w konkursie znajdują się pliki, które nie są częścią aplikacji, ale chcemy je zachować, należy w katalogu aplikacji utworzyć folder `temp` (zwrócić uwagę na wielkość liter) i tam je umieścić. To o tyle ważne, że wszystkie pliki nie należące do struktury aplikacji zostaną **usunięte**, ale te w katalogu `temp` zostaną zignorowane.
 6. Wpisać po kolei komendy:  
 `git fetch origin`  
-`git rebase v3.1.0`  
+`git rebase v3.1.1`  
 **macOS/Linux:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  
 `nvm install`  
@@ -72,7 +72,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 `git init .` (uwaga, na końcu jest kropka, nie przejmować się ostrzeżeniami)  
 `git remote add origin https://github.com/NathanielBlackburn/ktron.git`  
 `git fetch origin`  
-`git reset --hard v3.1.0`  
+`git reset --hard v3.1.1`  
 `git clean -df`  
 **macOS/Linux:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  
@@ -96,7 +96,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 4. Wpisać po kolei komendy:  
 `git remote set-url origin https://github.com/NathanielBlackburn/ktron.git`  
 `git fetch origin`  
-`git reset --hard v3.1.0`  
+`git reset --hard v3.1.1`  
 `git clean -df`  
 **macOS/Linux:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  

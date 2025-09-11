@@ -1,8 +1,11 @@
 const DB = {
 
 	dBase: new localStorageDB('konkursotron', localStorage),
-	version: '3.1.0',
-	migration_versions: ['3.1.0'],
+	version: '3.1.1',
+	migration_versions: [
+		'3.1.0',
+		'3.1.1'
+	],
 
 	Players: 'players',
 	Games: 'games',
