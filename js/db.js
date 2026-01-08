@@ -184,32 +184,17 @@ const DB = {
 		}, 0);
 	},
 
-	canCancelPoints: function() {
-		const pointsEntries = this.dBase.queryAll(this.Points, {sort: [['ID', 'DESC']]});
-		return pointsEntries.length && !pointsEntries[0].cancelled && parseFloat(pointsEntries[0].points) > 0;
-	},
-
-	cancelPoints: function() {
-		if (this.canCancelPoints()) {
-			const pointsEntries = this.dBase.queryAll(this.Points, {sort: [['ID', 'DESC']]});
-			this.dBase.update(this.Points, {ID: pointsEntries[0].ID}, (row) => {
-				row.points = '0';
-				row.cancelled = true;
-				return row;
-			});
-			this.dBase.commit();
-			return true;
-		} else {
-			return false;
-		}
-	},
-
 	endQuiz: function() {
 		this.dBase.update(this.Games, {ID: 1}, (row) => {
 			row.status = 'finished';
 			return row;
 		});
 		this.dBase.commit();
+	},
+
+	get canChangePoints() {
+		const quiz = this.dBase.queryAll(this.Games, {ID: 1});
+		return quiz[0].status == 'unfinished';
 	},
 
 	startOvertime: function(overtime) {

@@ -10,6 +10,7 @@
 	<script type="text/javascript" src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="node_modules/localstoragedb/localstoragedb.min.js"></script>
 	<script type="text/javascript" src="node_modules/viewerjs/dist/viewer.min.js"></script>
+	<script type="text/javascript" src="node_modules/gsap/dist/gsap.min.js"></script>
 	<script type="text/javascript" src="js/model/settings.js"></script>
 	<script type="text/javascript" src="js/model/player.js"></script>
 	<script type="text/javascript" src="js/model/overtimePlayer.js"></script>
@@ -64,7 +65,7 @@
 								<th>Punkty</th>
 							</tr>
 						</thead>
-						<tbody>
+						<tbody id="points-modal-tbody">
 						</tbody>
 					</table>	
 				</div>
@@ -108,7 +109,6 @@
 					</div>
 					<div class="center" id="main-page-control-buttons">
 						<button class="btn btn-large btn-danger d-none" id="endQuiz" onclick="endQuiz()">Zakończ konkurs</button>
-						<button class="btn btn-large btn-danger d-none" id="cancelAnswer" onclick="cancelAnswer()">Anuluj ostatni punkt</button>
 					</div>
 				</div>				
 			</div>

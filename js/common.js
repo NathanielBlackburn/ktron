@@ -102,6 +102,17 @@ const formatOvertimePoints = (points) => {
 	return (points > 0) ? `(+${points})` : '';
 };
 
+const createPointsModal = () => {
+	const players = DB.fetchAllPlayers();
+	const tbody = $('#points-modal-tbody');
+	$(tbody).empty();
+	players.forEach((player) => {
+		let currentStats = tbody.html();
+		currentStats += `<tr data-player-id="${player.ID}"><td data-role="lp"></td><td>${player.name}</td><td><button class="btn btn-tiny btn-danger inline" data-role="points-change" onclick="changePointsManually(${player.ID}, false)">-</button><span style="display: inline-block; width: 50px; text-align: center;"><span data-role="points"></span> <span data-role="overtime" style="font-size: small"></span></span><button class="btn btn-tiny btn-primary inline" data-role="points-change" onclick="changePointsManually(${player.ID}, true)">+</button></td></tr>`;
+		tbody.html(currentStats);
+	});
+};
+
 const togglePointsModal = () => {
 	if ($('#points-modal').hasClass('show')) {
 		const modal = bootstrap.Modal.getInstance('#points-modal');
@@ -112,42 +123,38 @@ const togglePointsModal = () => {
 };
 
 const showPointsModal = () => {
-	const players = DB.fetchAllPlayers();
-	const points = DB.fetchAllPoints();
-	if (!points.length) {
-		showToast('Nie zdobyto jeszcze żadnych punktów.', 'warning');
-		return;
+	updatePointsModal();
+	if (!DB.canChangePoints) {
+		$('button[data-role="points-change"]').hide();
 	}
+	const myModal = new bootstrap.Modal('#points-modal');
+	myModal.toggle();
+};
+
+const updatePointsModal = (sort = true) => {
+	const players = DB.fetchAllPlayers();
 	players.forEach((player) => {
 		player['points'] = DB.fetchPlayerPoints(player.ID, false);
 		player['overtimePoints'] = DB.fetchPlayerPoints(player.ID, true);
 	});
-	players.sort((a, b) => {
-		if (a.points < b.points) {
-			return 1;
-		} else if (a.points == b.points) {
-			if (a.overtimePoints < b.overtimePoints)
-				return 1;
-			else if (a.overtimePoints == b.overtimePoints)
-				return 0;
-			else if (a.overtimePoints > b.overtimePoints)
-				return -1;
-		} else if (a.points > b.points) {
-			return -1;
-		}
-	});
-	let lp = 1;
-	const tbody = $('#points-modal table tbody');
-	tbody.empty();
+	const tbody = document.querySelector('#points-modal-tbody');
 	players.forEach((player) => {
-		let currentStats = tbody.html();
-		const points = player.points;
-		const overtimePoints = formatOvertimePoints(player.overtimePoints);
-		currentStats += `<tr><td>${lp}</td><td>${player.name}</td><td>${points} <span style="font-size: small;">${overtimePoints}</span></td></tr>`;
-		tbody.html(currentStats);
+		const row = tbody.querySelector(`tr[data-player-id="${player.ID}"]`);
+		const pointsSpan = row.querySelector('span[data-role="points"]');
+		pointsSpan.textContent = player.points;
+		const overtimeSpan = row.querySelector('span[data-role="overtime"]');
+		overtimeSpan.textContent = formatOvertimePoints(player.overtimePoints);
 	});
-	const myModal = new bootstrap.Modal('#points-modal');
-	myModal.toggle();
+	if (sort) {
+		reorderWithNoAnimation();
+	}
+};
+
+const changePointsManually = (playerID, shouldAdd) => {
+	const player = DB.fetchPlayer(playerID);
+	DB.addPoints(player, shouldAdd ? 1 : -1);
+	updatePointsModal(false);
+	animateReorder();
 };
 
 const playerAdd = () => {
@@ -384,6 +391,65 @@ const showEl = (selector) => {
 const hideEl = (selector) => {
 	const element = (selector.constructor == $().constructor) ? selector : $(selector);
 	element.addClass('d-none');
+};
+
+const animateReorder = () => {
+	const tbody = document.getElementById('points-modal-tbody');
+  	const first = new Map();
+  	[...tbody.children].forEach(el => {
+    	first.set(el, el.getBoundingClientRect());
+  	});
+
+  	const rows = [...tbody.children].sort((a, b) => {
+		const pointsA = +a.querySelector('span[data-role="points"]').textContent;
+		const pointsB = +b.querySelector('span[data-role="points"]').textContent;
+		const overtimeA = +a.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
+		const overtimeB = +b.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
+		if (pointsA == pointsB) {
+			return overtimeB - overtimeA;
+		} else {
+			return pointsB - pointsA;
+		}
+	});
+  	rows.forEach(r => tbody.appendChild(r));
+	[...tbody.children].forEach((el, index) => {
+		el.querySelector('td[data-role="lp"]').textContent = index + 1;
+	});
+
+  	[...tbody.children].forEach(el => {
+    	const last = el.getBoundingClientRect();
+    	const dx = first.get(el).left - last.left;
+    	const dy = first.get(el).top - last.top;
+    	gsap.fromTo(
+			el,
+			{ x: dx, y: dy },
+			{
+      			duration: 0.4,
+      			x: 0,
+      			y: 0,
+      			ease: "power2.out"
+    		}
+		);
+  	});
+};
+
+const reorderWithNoAnimation = () => {
+	const tbody = document.getElementById('points-modal-tbody');
+  	const rows = [...tbody.children].sort((a, b) => {
+		const pointsA = +a.querySelector('span[data-role="points"]').textContent;
+		const pointsB = +b.querySelector('span[data-role="points"]').textContent;
+		const overtimeA = +a.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
+		const overtimeB = +b.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
+		if (pointsA == pointsB) {
+			return overtimeB - overtimeA;
+		} else {
+			return pointsB - pointsA;
+		}
+	});
+  	rows.forEach(r => tbody.appendChild(r));
+	[...tbody.children].forEach((el, index) => {
+		el.querySelector('td[data-role="lp"]').textContent = index + 1;
+	});
 };
 
 $(() => {

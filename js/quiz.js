@@ -50,6 +50,7 @@ const restoreGameProgress = (game) => {
 	hideEl('#quizStart');
 	showEl('#cinema-light');
 	showEl('#show-points');
+	createPointsModal();
 	const index = KTron.quizzes.findIndex((quiz) => quiz.code == game.game_code);
 	Quiz.questions = KTron.quizzes[index].questions;
 	Quiz.code = KTron.quizzes[index].code;
@@ -82,7 +83,6 @@ const restoreGameProgress = (game) => {
 	updateQuizInfo();
 	showEl('#getAnswer');
 	showEndQuizButton();
-	showCancelButton();
 };
 
 const findQuestion = (questionId) => {
@@ -111,6 +111,7 @@ const startGameProgress = (quizCode) => {
 	hideEl('#quizStart');
 	showEl('#cinema-light');
 	showEl('#show-points');
+	createPointsModal();
 	nextQuestion();
 };
 
@@ -132,7 +133,6 @@ const nextQuestion = () => {
 	updateQuizInfo();
 	showEl('#getAnswer');
 	showEndQuizButton();
-	showCancelButton();
 };
 
 const createFakeQuestion = () => {
@@ -219,6 +219,9 @@ const endTurn = () => {
 				return;
 			} else {
 				Quiz.round += 1;
+				if (Quiz.currentPlayerIndex == 0) {
+					showToast('Początek nowej rundy!');
+				}
 			}
 		}
 	}
@@ -250,7 +253,6 @@ const endQuiz = (automatic = false, places = null) => {
 		hideEl('#endQuiz');
 		hideEl('#getAnswer');
 		togglePointButtons(false);
-		hideEl('#cancelAnswer');
 		if (Quiz.overtime) {
 			DB.endQuiz();
 			showWinner(Quiz.overtime.podium);
@@ -465,7 +467,6 @@ const clearMainPage = () => {
 	hideEl('#question-text');
 	hideEl('#cat-text');
 	hideEl('#quiz-info');
-	hideEl('#cancelAnswer');
 };
 
 const showEndQuizButton = () => {
@@ -476,29 +477,6 @@ const showEndQuizButton = () => {
 		showEl('#endQuiz');
 	} else {
 		hideEl('#endQuiz');
-	}
-};
-
-const showCancelButton = () => {
-	if (Quiz.overtime) {
-		return;
-	}
-	if (DB.canCancelPoints()) {
-		showEl('#cancelAnswer');
-	} else {
-		hideEl('#cancelAnswer');
-	}
-};
-	
-const cancelAnswer = () => {
-	if (confirm('Na pewno usunąć ostatnio zdobyty punkt?')) {
-		const cancelled = DB.cancelPoints();
-		if (cancelled) {
-			hideEl('#cancelAnswer');
-			showToast('Punkt usunięto.');
-		} else {
-			showToast('Ostatni punkt został już anulowany.', 'error');
-		}
 	}
 };
 
