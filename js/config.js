@@ -1,7 +1,8 @@
 const KTron = {
 	config: {
 		quizFiles: ktronQuizFiles,
-		debugMode: false
+		debugMode: false,
+		dontRandomize: false,
 	},
 	quizzes: [],
 	scriptsToLoad: 0,

@@ -115,13 +115,21 @@ const startGameProgress = (quizCode) => {
 	nextQuestion();
 };
 
+const getRandomNumber = (topLimit) => {
+	if (KTron.config.dontRandomize) {
+		return 0;
+	} else {
+		return Math.floor(Math.random() * topLimit);
+	}
+};
+
 const nextQuestion = () => {
 	const unusedQuestions = Quiz.questions.filter(q => !q.used);
 	if (unusedQuestions.length == 0) {
 		Quiz.currentQuestion = createFakeQuestion();
 		showQuestion(Quiz.currentQuestion);
 	} else {
-		const newQuestion = unusedQuestions[Math.floor(Math.random() * unusedQuestions.length)];
+		const newQuestion = unusedQuestions[getRandomNumber(unusedQuestions.length)];
 		DB.useUpQuestion(newQuestion, Quiz.currentPlayer);
 		newQuestion.used = true;
 		Quiz.currentQuestion = newQuestion;
@@ -295,7 +303,7 @@ const showQuestion = (question) => {
 	hideEl('#audio-container');
 	$('#question-text').empty();
 	hideEl('.quiz-main-logo');
-	$('#question-text').html(question.questionText);
+	$('#question-text').html(renderTags(question.questionText));
 	showEl('#question-text');
 	if (typeof question.category !== 'undefined' && question.category.length) {
 		$('#cat-text').html('Kategoria: ' + question.category);
@@ -314,6 +322,26 @@ const showQuestion = (question) => {
 	if (intersection.length) {
 		createVideoContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: false});
 	}
+};
+
+const escapeHTML = (html) => {
+	const escape = document.createElement('textarea');
+    escape.textContent = html;
+    return escape.innerHTML;
+};
+
+const unescapeHTML = (text) => {
+	const escape = document.createElement('textarea');
+    escape.innerHTML = text;
+    return escape.textContent;
+};
+
+const renderTags = (text) => {
+  const escaped = escapeHTML(text);
+
+  return escaped
+    .replace(/\[br\]/g, '<br>')
+    .replace(/\[blue\](.*?)\[\/blue\]/g, '<span class="blue">$1</span>');
 };
 
 const createImageContainer = (data) => {
@@ -402,7 +430,7 @@ const showAnswer = (question) => {
 	$('#cat-text').empty();
 	hideEl('.quiz-main-logo');
 	if (question.answerText != '') {
-		$('#question-text').html(question.answerText);
+		$('#question-text').html(renderTags(question.answerText));
 	}
 	showEl('#question-text');
 	const answerMediaTypes = question.answerType.toLowerCase().trim().split('|');

@@ -268,6 +268,46 @@ const normaliseMediaType = (question) => {
     return result;
 };
 
+const choicesAreSeparatedByWhitespace = (text) => {
+    const matches = [...text.matchAll(/[a-z]\)/g)];
+
+  for (let i = 1; i < matches.length; i++) {
+    const markerIndex = matches[i].index;
+
+    if (!/\s/.test(text[markerIndex - 1])) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const transformMultipleChoiceQuestion = (question, errors) => {
+    if (!['[x_x]', 'a)', 'b)'].every(el => question.questionText.includes(el))) {
+        return question;
+    }
+    if (!question.questionText.includes(question.answerText)) {
+        errors.push(`Odpowiedź wielokrotnego wyboru z pytania ${question.id} nie występuje w treści pytania.`);
+        return question;
+    }
+    const questionSplit = question.questionText.split('[x_x]');
+    if (questionSplit.length > 2) {
+        errors.push(`Pytanie ${question.id} zawiera zbyt wiele markerów oddzielających: [x_x].`);
+        return question;
+    }
+    const result = structuredClone(question);
+    if (!choicesAreSeparatedByWhitespace(questionSplit[1])) {
+        errors.push(`W pytaniu ${question.id} odpowiedzi wielokrotnego wyboru nie są rozdzielone spacjami.`);
+        return question;
+    }
+    const choices = questionSplit[1].replace(/\s(?=[a-z]\))/g, '[br]');
+    result.questionText = questionSplit[0] + '[br][br]' + choices;
+    const answerSplit = choices.split(question.answerText);
+    result.answerText = questionSplit[0] + '[br][br]' + answerSplit[0] + '[blue]' + result.answerText + '[/blue]' + answerSplit[1];
+
+    return result;
+};
+
 const importNewQuiz = async (rl) => {
     let logs = [];
     const pathName = './pytania';
@@ -306,6 +346,7 @@ const importNewQuiz = async (rl) => {
                         json['questions'] = [];
                         // TODO: Handle HTML tags
                         // TODO: Handle the [spoiler] prefix
+                        const multipleChoiceErrors = [];
                         records.forEach((rec, index) => {
                             if (!checkCSVColumns(rec)) {
                                 throw new Error('Niepoprawne nagłówki kolumn w pliku csv.');
@@ -321,9 +362,14 @@ const importNewQuiz = async (rl) => {
                             if (typeof rec.category !== 'undefined' && rec.category.trim()) {
                                 question['category'] = rec.category.trim();
                             }
+                            question = transformMultipleChoiceQuestion(question, multipleChoiceErrors);
                             json.questions.push(question);
                         });
                         const verificationResult = await verifyMedia(code, json.questions);
+                        if (multipleChoiceErrors.length) {
+                            logs = logs.concat(multipleChoiceErrors);
+                            throw new Error('Błędy w pytaniach wielokrotnego wyboru.');
+                        }
                         if (verificationResult.success) {
                             json['author'] = '';
                             json['title'] = '';

@@ -4,7 +4,7 @@ const DB = {
 	version: '3.1.1',
 	migration_versions: [
 		'3.1.0',
-		'3.1.1'
+		'3.1.1',
 	],
 
 	Players: 'players',
