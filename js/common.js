@@ -264,6 +264,7 @@ const setupSettings = () => {
 	document.querySelector('#settingsShowPointsAfterEachRound').checked = Quiz.settings.showPointsAfterEachRound;
 	document.querySelector('#settingsUseCustomVictoryImage').checked = Quiz.settings.useCustomVictoryImage;
 	document.querySelector('#settingsUseCustomVictoryFanfare').checked = Quiz.settings.useCustomVictoryFanfare;
+	document.querySelector('#settingsShowQuestionAudioOnAnswer').checked = Quiz.settings.showQuestionAudioOnAnswer;
 };
 
 const settingsToggle = (target) => {
@@ -288,6 +289,9 @@ const settingsToggle = (target) => {
 			break;
 		case 'settingsUseCustomVictoryFanfare':
 			Quiz.settings.useCustomVictoryFanfare = target.checked;
+			break;
+		case 'settingsShowQuestionAudioOnAnswer':
+			Quiz.settings.showQuestionAudioOnAnswer = target.checked;
 			break;
 	}
 };

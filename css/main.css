@@ -266,8 +266,11 @@ a.error-tooltip {
 }
 
 #audio-container {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	align-items: center;
 	margin: 15px 0 10px;
-	text-align: center;
 	z-index: 20;
 	position: relative;
 }

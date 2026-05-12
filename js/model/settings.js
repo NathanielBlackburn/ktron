@@ -25,6 +25,9 @@ class Settings {
         if (typeof this.storage['useCustomVictoryFanfare'] === 'undefined') {
             this.useCustomVictoryFanfare = false;
         }
+        if (typeof this.storage['showQuestionAudioOnAnswer'] === 'undefined') {
+            this.showQuestionAudioOnAnswer = false;
+        }
         if (typeof this.storage['logo'] === 'undefined') {
             this.logo = UI.defaults.LOGO_IMAGE;
         }
@@ -102,6 +105,14 @@ class Settings {
 
     set useCustomVictoryFanfare(value) {
         this.writeToStorage('useCustomVictoryFanfare', value);
+    }
+
+    get showQuestionAudioOnAnswer() {
+        return this.storage.showQuestionAudioOnAnswer;
+    }
+
+    set showQuestionAudioOnAnswer(value) {
+        this.writeToStorage('showQuestionAudioOnAnswer', value);
     }
 
     get logo() {

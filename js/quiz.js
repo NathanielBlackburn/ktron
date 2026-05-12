@@ -298,9 +298,7 @@ const showQuestion = (question) => {
 	debug('This question: ');
 	debug(question);
 	debug('---------------------------------------------------');
-	hideEl('#image-container');
-	hideEl('#movie-container');
-	hideEl('#audio-container');
+	clearMediaContainers();
 	$('#question-text').empty();
 	hideEl('.quiz-main-logo');
 	$('#question-text').html(renderTags(question.questionText));
@@ -309,19 +307,129 @@ const showQuestion = (question) => {
 		$('#cat-text').html('Kategoria: ' + question.category);
 		showEl('#cat-text');
 	}
-	const questionMediaTypes = question.questionType.toLowerCase().trim().split('|');
-	let intersection = arrayIntersection(Quiz.imageTypes, questionMediaTypes);
-	if (intersection.length) {
-		createImageContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: false});
+	createImageContainer(question, false);
+	createAudioContainer(question, false);
+	createVideoContainer(question, false);
+};
+
+const showAnswer = (question) => {
+	clearMediaContainers();
+	$('#question-text').empty();
+	hideEl('#cat-text');
+	$('#cat-text').empty();
+	hideEl('.quiz-main-logo');
+	if (question.answerText != '') {
+		$('#question-text').html(renderTags(question.answerText));
 	}
-	intersection = arrayIntersection(Quiz.audioTypes, questionMediaTypes);
-	if (intersection.length) {
-		createAudioContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: false});
+	showEl('#question-text');
+	if (Quiz.settings.showQuestionAudioOnAnswer) {
+		createAudioContainer(question, false);
 	}
-	intersection = arrayIntersection(Quiz.videoTypes, questionMediaTypes);
-	if (intersection.length) {
-		createVideoContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: false});
+	createImageContainer(question, true);
+	createAudioContainer(question, true);
+	createVideoContainer(question, true);
+};
+
+const clearMediaContainers = () => {
+	$('#image-container').empty();
+	$('#movie-container').empty();
+	$('#audio-container').empty();
+	hideEl('#image-container');
+	hideEl('#movie-container');
+	hideEl('#audio-container');
+};
+
+const createImageContainer = (question, isAnswer) => {
+	const mediaTypes = (isAnswer ? question.answerType : question.questionType).toLowerCase().trim().split('|');
+	const intersection = arrayIntersection(Quiz.imageTypes, mediaTypes);
+	if (!intersection.length) {
+		return;
 	}
+	const mediaType = intersection[0];
+	const quizCode = Quiz.code;
+	const image = document.createElement('img');
+	image.className = 'question-image';
+	let src = '';
+	if (mediaType == 'pre:question') {
+		src = 'res/pre_q.jpg';
+	} else if (mediaType == 'pre:answer') {
+		src = 'res/pre_a.jpg';
+	} else {
+		const lastPart = (isAnswer) ? 'a.' + mediaType : '.' + mediaType;
+		src = 'pytania/' + quizCode + '/' + question.id + lastPart;
+	}
+	image.src = src;
+	const imageContainer = $('#image-container');
+	imageContainer.append(image);
+	const viewer = new Viewer(image, {
+		navbar: false,
+		toolbar: false,
+		movable: false,
+		viewed() {
+			viewer.zoomTo(2);
+		},
+	  });
+	showEl(imageContainer);
+};
+
+const createVideoContainer = (question, isAnswer) => {
+	const mediaTypes = (isAnswer ? question.answerType : question.questionType).toLowerCase().trim().split('|');
+	const intersection = arrayIntersection(Quiz.videoTypes, mediaTypes);
+	if (!intersection.length) {
+		return;
+	}
+	const mediaType = intersection[0];
+	const quizCode = Quiz.code;
+	const movieContainer = $('#movie-container');
+	const movieContent = document.createElement('div');
+	movieContent.setAttribute('id', 'movie-content');
+	movieContainer.append(movieContent);
+	let movieOverlay;
+	if (!isAnswer) {
+		movieOverlay = document.createElement('div');
+		movieOverlay.setAttribute('id', 'movie-overlay');
+		movieContent.append(movieOverlay);
+		const iconContainer = document.createElement('div');
+		iconContainer.className = 'container movie-overlay-icon-container';
+		movieOverlay.append(iconContainer);
+		const icon = document.createElement('i');
+		icon.className = 'movie-overlay-icon bi bi-play-circle-fill';
+		iconContainer.append(icon);
+	}
+
+	const video = document.createElement('video');
+	video.setAttribute('id', 'movie-video');
+	video.setAttribute('controls', 'controls');
+	video.className = 'question-video';
+	const lastPart = (isAnswer) ? 'a.' + mediaType : '.' + mediaType;
+	video.src = 'pytania/' + quizCode + '/' + question.id + lastPart;
+	$(movieContent).append(video);
+	showEl(movieContainer);
+	if (!isAnswer) {
+		$(movieOverlay).css('height', $('#movie-container > video').css('height'));
+		$(movieOverlay).on('click', () => {
+			hideEl(movieOverlay);
+			video.play();
+		});
+	}
+};
+
+const createAudioContainer = (question, isAnswer) => {
+	const mediaTypes = (isAnswer ? question.answerType : question.questionType).toLowerCase().trim().split('|');
+	const intersection = arrayIntersection(Quiz.audioTypes, mediaTypes);
+	if (!intersection.length) {
+		return;
+	}
+	const mediaType = intersection[0];
+	const quizCode = Quiz.code;
+	const audio = document.createElement('audio');
+	audio.setAttribute('controls', 'controls');
+	audio.className = 'question-audio';
+	const lastPart = (isAnswer) ? 'a.' + mediaType : '.' + mediaType;
+	audio.src = 'pytania/' + quizCode + '/' + question.id + lastPart;
+	const audioContainer = $('#audio-container');
+	audioContainer.append(audio);
+	showEl(audioContainer);
 };
 
 const escapeHTML = (html) => {
@@ -342,110 +450,6 @@ const renderTags = (text) => {
   return escaped
     .replace(/\[br\]/g, '<br>')
     .replace(/\[blue\](.*?)\[\/blue\]/g, '<span class="blue">$1</span>');
-};
-
-const createImageContainer = (data) => {
-	const image = document.createElement('img');
-	image.className = 'question-image';
-	let src = '';
-	if (data.type == 'pre:question') {
-		src = 'res/pre_q.jpg';
-	} else if (data.type == 'pre:answer') {
-		src = 'res/pre_a.jpg';
-	} else {
-		const lastPart = (data.isAnswer) ? 'a.' + data.type : '.' + data.type;
-		src = 'pytania/' + data.code + '/' + data.id + lastPart;
-	}
-	image.src = src;
-	const imageContainer = $('#image-container');
-	imageContainer.empty();
-	imageContainer.append(image);
-	const viewer = new Viewer(image, {
-		navbar: false,
-		toolbar: false,
-		movable: false,
-		viewed() {
-			viewer.zoomTo(2);
-		},
-	  });
-	showEl(imageContainer);
-};
-
-const createVideoContainer = (data) => {
-	const movieContainer = $('#movie-container');
-	const movieContent = document.createElement('div');
-	movieContent.setAttribute('id', 'movie-content');
-	movieContainer.append(movieContent);
-	let movieOverlay;
-	if (!data.isAnswer) {
-		movieOverlay = document.createElement('div');
-		movieOverlay.setAttribute('id', 'movie-overlay');
-		movieContent.append(movieOverlay);
-		const iconContainer = document.createElement('div');
-		iconContainer.className = 'container movie-overlay-icon-container';
-		movieOverlay.append(iconContainer);
-		const icon = document.createElement('i');
-		icon.className = 'movie-overlay-icon bi bi-play-circle-fill';
-		iconContainer.append(icon);
-	}
-
-	const video = document.createElement('video');
-	video.setAttribute('id', 'movie-video');
-	video.setAttribute('controls', 'controls');
-	video.className = 'question-video';
-	const lastPart = (data.isAnswer) ? 'a.' + data.type : '.' + data.type;
-	video.src = 'pytania/' + data.code + '/' + data.id + lastPart;
-	$(movieContent).append(video);
-	showEl(movieContainer);
-	if (!data.isAnswer) {
-		$(movieOverlay).css('height', $('#movie-container > video').css('height'));
-		$(movieOverlay).on('click', () => {
-			hideEl(movieOverlay);
-			video.play();
-		});
-	}
-};
-
-const createAudioContainer = (data) => {
-	const audio = document.createElement('audio');
-	audio.setAttribute('controls', 'controls');
-	audio.className = 'question-audio';
-	const lastPart = (data.isAnswer) ? 'a.' + data.type : '.' + data.type;
-	audio.src = 'pytania/' + data.code + '/' + data.id + lastPart;
-	const audioContainer = $('#audio-container');
-	audioContainer.empty();
-	audioContainer.append(audio);
-	showEl(audioContainer);
-};
-
-const showAnswer = (question) => {
-	$('#image-container').empty();
-	$('#movie-container').empty();
-	$('#audio-container').empty();
-	hideEl('#image-container');
-	hideEl('#movie-container');
-	hideEl('#audio-container');
-	$('#question-text').empty();
-	hideEl('#cat-text');
-	$('#cat-text').empty();
-	hideEl('.quiz-main-logo');
-	if (question.answerText != '') {
-		$('#question-text').html(renderTags(question.answerText));
-	}
-	showEl('#question-text');
-	const answerMediaTypes = question.answerType.toLowerCase().trim().split('|');
-	let intersection = arrayIntersection(Quiz.imageTypes, answerMediaTypes);
-	if (intersection.length) {
-		createImageContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: true});
-	}
-	intersection = arrayIntersection(Quiz.audioTypes, answerMediaTypes);
-	if (intersection.length) {
-		createAudioContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: true});
-	}
-	intersection = arrayIntersection(Quiz.videoTypes, answerMediaTypes);
-	if (intersection.length) {
-		createVideoContainer({code: Quiz.code, id: question.id, type: intersection[0], isAnswer: true});
-	}
 };
 
 const newQuiz = (quizCode) => {
