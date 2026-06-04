@@ -86,12 +86,15 @@ const fillDataNodes = (node) => {
 };
 
 const updateQuestionsDescription = (quiz) => {
-	$('#question-set-title').html('<strong>Tytuł: </strong>  <span class="content">' + quiz.title + '</span>');
-	$('#question-set-author').html('<strong>Autor: </strong>  <span class="content">' + quiz.author + '</span>');
-	$('#question-set-count').html('<strong>Liczba pytań: </strong>  <span class="content">' + quiz.questions.length + '</span>');
+	$('#question-set-title').html('<strong>' + I18n.t('quiz.titleLabel') + ' </strong>  <span class="content">' + quiz.title + '</span>');
+	$('#question-set-author').html('<strong>' + I18n.t('quiz.authorLabel') + ' </strong>  <span class="content">' + quiz.author + '</span>');
+	$('#question-set-count').html('<strong>' + I18n.t('quiz.questionsCountLabel') + ' </strong>  <span class="content">' + quiz.questions.length + '</span>');
 };
 
-const error = (msg, title = 'Błąd!') => {
+const error = (msg, title) => {
+	if (typeof title === 'undefined') {
+		title = I18n.t('modal.error.title');
+	}
 	$('#error-modal-title').empty().html(title);
 	$('#error-modal-content').empty().html(msg);
 	const myModal = new bootstrap.Modal('#error-message');
@@ -108,7 +111,7 @@ const createPointsModal = () => {
 	$(tbody).empty();
 	players.forEach((player) => {
 		const removeButton = Quiz.inProgress && !player.removed
-			? `<button type="button" class="btn btn-tiny btn-outline-secondary ms-1" data-role="remove-player" onclick="removePlayerFromGame(${player.ID})" aria-label="Usuń gracza">×</button>`
+			? `<button type="button" class="btn btn-tiny btn-outline-secondary ms-1" data-role="remove-player" onclick="removePlayerFromGame(${player.ID})" aria-label="${I18n.t('player.removeAria')}">×</button>`
 			: '';
 		let currentStats = tbody.html();
 		currentStats += `<tr data-player-id="${player.ID}"><td data-role="lp"></td><td data-role="name-cell"><span data-role="player-name">${player.name}</span>${removeButton}</td><td><button class="btn btn-tiny btn-danger inline" data-role="points-change" onclick="changePointsManually(${player.ID}, false)">-</button><span style="display: inline-block; width: 50px; text-align: center;"><span data-role="points"></span> <span data-role="overtime" style="font-size: small"></span></span><button class="btn btn-tiny btn-primary inline" data-role="points-change" onclick="changePointsManually(${player.ID}, true)">+</button></td></tr>`;
@@ -184,7 +187,7 @@ const playerAdd = () => {
 	} else {
 		const player = DB.fetchPlayerByName(name);
 		if (player) {
-			showToast('Taka nazwa już istnieje.', 'error');
+			showToast(I18n.t('toast.duplicateName'), 'error');
 			return;
 		} else {
 			DB.createPlayer(name);
@@ -197,22 +200,22 @@ const playerAdd = () => {
 const playerRemove = () => {
 	const selected = $('#players option:selected');
 	if (selected.length) {
-		if (confirm('Na pewno usunąć?')) {
+		if (confirm(I18n.t('confirm.removePlayer'))) {
 			selected.each((index, playerElement) => {
 				DB.removePlayer($(playerElement).data('playerId'));
 			});
 			fillDataNodes('players');
 		}
 	} else {
-		showToast('Nie wybrano nikogo do usunięcia.', 'warning');
+		showToast(I18n.t('toast.noPlayerSelected'), 'warning');
 	}
 };
 
 const playersPurge = () => {
-	if (DB.fetchAllPlayers().length > 0 && confirm('Na pewno usunąć WSZYSTKICH graczy?')) {
+	if (DB.fetchAllPlayers().length > 0 && confirm(I18n.t('confirm.purgeAllPlayers'))) {
 		DB.removeAllPlayers();
 		fillDataNodes('players');
-		showToast('Usunięto.');
+		showToast(I18n.t('toast.purged'));
 	}
 };
 
@@ -241,7 +244,7 @@ const loadScript = (code) => {
 	$(script).on('load', function () {
 		KTron.scriptsLoaded += 1;
 		if (KTron.scriptsLoaded == KTron.scriptsToLoad) {
-			init();
+			i18nReady.then(() => init());
 		}
 	});
 	document.head.appendChild(script);
@@ -263,7 +266,7 @@ const bindKeypress = () => {
 		if (event.shiftKey && event.code == 'KeyP' && Quiz.inProgress) {
 			togglePointsModal();
 		} else if (event.shiftKey && event.altKey && event.code == 'KeyQ') {
-			if (confirm('Ar ju siur?')) {
+			if (confirm(I18n.t('confirm.easterEgg'))) {
 				DB.purge();
 			}
 		}
@@ -328,7 +331,7 @@ const loadLogo = () => {
 	logoImg.src = path;
 	document.getElementById('logo-list').value = logo;
 	logoImg.onerror = () => {
-		showToast('Nie znaleziono pliku logo.png w katalogu res/custom.', 'error');
+		showToast(I18n.t('toast.logoNotFound'), 'error');
 		logoImg.onerror = null;
 		logoImg.src = `res/logo/${UI.defaults.LOGO_IMAGE}.png`;
 		document.getElementById('logo-list').value = UI.defaults.LOGO_IMAGE;
@@ -364,16 +367,19 @@ const init = () => {
 
 const pointsToWords = (number) => {
 	number = parseFloat(number);
+	if (I18n.locale === 'en') {
+		return (number === 1) ? I18n.t('points.word_one') : I18n.t('points.word_many');
+	}
 	if (Math.floor(number) != number) {
-		return 'punkta';
+		return I18n.t('points.word_fraction');
 	} else if (number == 1) {
-		return 'punkt';
+		return I18n.t('points.word_one');
 	} else {
 		number = number.toString().slice(-1);
 		if (number >= 2 && number <= 4) {
-			return 'punkty';
+			return I18n.t('points.word_few');
 		} else {
-			return 'punktów';
+			return I18n.t('points.word_many');
 		}
 	}
 };
@@ -393,15 +399,15 @@ const showToast = (text, type = 'info') => {
 	switch (type) {
 		case 'warning':
 			$('#quiz-toast div.toast-icon').addClass('toast-icon-warning');
-			$('#quiz-toast strong.toast-title').text('Uwaga');
+			$('#quiz-toast strong.toast-title').text(I18n.t('toast.warning'));
 			break;
 		case 'error':
 			$('#quiz-toast div.toast-icon').addClass('toast-icon-error');
-			$('#quiz-toast strong.toast-title').text('Błąd!');
+			$('#quiz-toast strong.toast-title').text(I18n.t('toast.error'));
 			break;
 		default:
 			$('#quiz-toast div.toast-icon').addClass('toast-icon-info');
-			$('#quiz-toast strong.toast-title').text('Info');
+			$('#quiz-toast strong.toast-title').text(I18n.t('toast.info'));
 	}
 	const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toast);
 	toastBootstrap.show();
@@ -477,10 +483,16 @@ const reorderWithNoAnimation = () => {
 };
 
 $(() => {
-	if (KTron && KTron.quizzes) {
-		window['questions'] = KTron.quizzes;
-	}
-	loadLogo();
-	loadQuestions();
-	$('#version-info').text('v' + DB.version);
+	i18nReady = I18n.init();
+	i18nReady.then(() => {
+		if (KTron && KTron.quizzes) {
+			window['questions'] = KTron.quizzes;
+		}
+		loadLogo();
+		loadQuestions();
+		$('#version-info').text('v' + DB.version);
+		if (KTron.scriptsToLoad === 0) {
+			init();
+		}
+	});
 });

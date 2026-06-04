@@ -72,7 +72,7 @@ const handleEndOfLap = () => {
 	}
 	Quiz.round += 1;
 	if (Quiz.currentPlayerIndex == 0) {
-		showToast('Początek nowej rundy!');
+		showToast(I18n.t('toast.newRound'));
 	}
 	return false;
 };
@@ -92,7 +92,7 @@ const continueAfterRemoval = () => {
 
 const startQuiz = () => {
 	if (!$('#players option').length) {
-		error('Nie wprowadzono graczy!');
+		error(I18n.t('error.noPlayers'));
 	} else {
 		const quizCode = $('#questions-choice').find(':selected').first().data('quizCode');
 		startGameProgress(quizCode);
@@ -222,7 +222,7 @@ const nextQuestion = () => {
 const createFakeQuestion = () => {
 	return {
 		id: -1,
-		questionText: 'Prowadzący zadaje pytanie od czapy!',
+		questionText: I18n.t('fakeQuestion.text'),
 		questionType: 'pre:question',
 		answerText: '',
 		answerType: 'pre:answer',
@@ -319,7 +319,7 @@ const nextTurn = (nextRound = false) => {
 };
 
 const endQuiz = (automatic = false, places = null) => {
-	if (automatic || (confirm('Czy na pewno zakończyć grę?') && confirm('Czy na pewno NA PEWNO zakończyć grę?'))) {
+	if (automatic || (confirm(I18n.t('confirm.endGame')) && confirm(I18n.t('confirm.endGameDefinitely')))) {
 		hideEl('#image-container');
 		hideEl('#movie-container');
 		hideEl('#audio-container');
@@ -371,7 +371,7 @@ const showQuestion = (question) => {
 	$('#question-text').html(renderTags(question.questionText));
 	showEl('#question-text');
 	if (typeof question.category !== 'undefined' && question.category.length) {
-		$('#cat-text').html('Kategoria: ' + question.category);
+		$('#cat-text').html(I18n.t('category.prefix') + ' ' + question.category);
 		showEl('#cat-text');
 	}
 	createImageContainer(question, false);
@@ -537,15 +537,15 @@ const updateQuizInfo = () => {
 	let currentPlayer = '';
 	const player = Quiz.currentPlayer;
 	if (player) {
-		currentPlayer = '<div class="info-quiz" id="info-quiz-player"><div class="team-name-label">Odpowiada: </div><div class="team-name">' + player.name + '</div></div>';
+		currentPlayer = '<div class="info-quiz" id="info-quiz-player"><div class="team-name-label">' + I18n.t('quizInfo.answering') + ' </div><div class="team-name">' + player.name + '</div></div>';
 	}
-	let msg = '<div class="info-quiz" id="info-quiz-name">Tytuł: <strong>' + Quiz.title + '</strong></div>';
+	let msg = '<div class="info-quiz" id="info-quiz-name">' + I18n.t('quizInfo.title') + ' <strong>' + Quiz.title + '</strong></div>';
 	if (!Quiz.overtime) {
-		const roundInfo = '<div class="info-quiz" id="info-quiz-round">Kolejka: <strong>' + Quiz.round + '</strong></div>';
-		const questionsInfo = '<div class="info-quiz" id="info-quiz-questions-left">Pozostało pytań: <strong>' + questionsLeft() + '</strong> (kolejek: <strong>' + roundsLeft() + '</strong>)</div>';	
+		const roundInfo = '<div class="info-quiz" id="info-quiz-round">' + I18n.t('quizInfo.round') + ' <strong>' + Quiz.round + '</strong></div>';
+		const questionsInfo = '<div class="info-quiz" id="info-quiz-questions-left">' + I18n.t('quizInfo.questionsLeft') + ' <strong>' + questionsLeft() + '</strong> (' + I18n.t('quizInfo.roundsLeft') + ' <strong>' + roundsLeft() + '</strong>)</div>';
 		msg += roundInfo + questionsInfo;
 	} else {
-		let overtimeNames = '<div class="info-quiz" id="info-overtime-names">W dogrywce: ';
+		let overtimeNames = '<div class="info-quiz" id="info-overtime-names">' + I18n.t('quizInfo.overtime') + ' ';
 		const overtimePlayers = Quiz.overtime.playersToBeAsked;
 		overtimeNames += overtimePlayers.map((player) => `<strong>${player.name}</strong>`).join(', ')  + '</div>';
 		msg += overtimeNames;
@@ -664,15 +664,15 @@ const showWinner = (places) => {
 	const placeLine = (place, label, tag) => {
 		return `<${tag}>${label}: <strong>${place.name}</strong> (${place.points} ${pointsToWords(place.points)})` + ` <span style="font-size: small;">${formatOvertimePoints(place.overtimePoints)}</span>` + `</${tag}>`;
 	};
-	let html = '<h2>Zwycięzcą, po bojach i znojach, zostaje:</h2><h1><strong style="color: darkorange;">'
-		+ firstPlace.name.toUpperCase() + '</strong></h1><h2>zdobywszy ' + firstPlace.points + ' ' + pointsToWords(firstPlace.points) + '!' + ` <span style="font-size: small;">${formatOvertimePoints(firstPlace.overtimePoints)}</span>`
-		+ '</h2><h2>Gratulacje od samego Nicolasa Cage\'a!</h2>'
+	let html = '<h2>' + I18n.t('winner.intro') + '</h2><h1><strong style="color: darkorange;">'
+		+ firstPlace.name.toUpperCase() + '</strong></h1><h2>' + I18n.t('winner.scored') + ' ' + firstPlace.points + ' ' + pointsToWords(firstPlace.points) + '!' + ` <span style="font-size: small;">${formatOvertimePoints(firstPlace.overtimePoints)}</span>`
+		+ '</h2><h2>' + I18n.t('winner.congrats') + '</h2>'
 		+ `<div class="mg-b-10"><img src="${victoryImagePath}" id="victory-image" /></div>`;
 	if (tiers[1]) {
-		html += placeLine(tiers[1][0], 'Miejsce drugie', 'h4');
+		html += placeLine(tiers[1][0], I18n.t('winner.secondPlace'), 'h4');
 	}
 	if (tiers[2]) {
-		html += placeLine(tiers[2][0], 'Miejsce trzecie', 'h5');
+		html += placeLine(tiers[2][0], I18n.t('winner.thirdPlace'), 'h5');
 	}
 	$('#quiz-info').html(html);
 	const victoryImage = document.getElementById('victory-image');
@@ -725,7 +725,7 @@ const removePlayerFromGame = (playerId) => {
 	if (!Quiz.inProgress) {
 		return;
 	}
-	if (!confirm('Czy na pewno usunąć gracza?')) {
+	if (!confirm(I18n.t('confirm.removePlayerFromGame'))) {
 		return;
 	}
 	const player = DB.fetchPlayer(playerId);
@@ -733,7 +733,7 @@ const removePlayerFromGame = (playerId) => {
 		return;
 	}
 	if (activePlayersCount() <= 1) {
-		showToast('Musi zostać przynajmniej jeden aktywny gracz.', 'error');
+		showToast(I18n.t('toast.minOnePlayer'), 'error');
 		return;
 	}
 	const wasCurrentPlayer = Quiz.overtime
@@ -788,18 +788,18 @@ const startOvertime = (overtime) => {
 const displayOvertimeMessage = () => {
 	let msg = '';
 	if (Quiz.overtime.firstPlace.length > 1) {
-		msg += '<div style="text-align: center;"><p style="color: black;">O miejsce pierwsze rywalizują: '
+		msg += '<div style="text-align: center;"><p style="color: black;">' + I18n.t('overtime.forFirst') + ' '
 			+ Quiz.overtime.firstPlace.map((player) => `<strong>${player.name}</strong>`).join(', ') + '</p></div>';
 	}
 	if (Quiz.overtime.secondPlace.length > 1) {
-		msg += '<div style="text-align: center;"><p style="color: black;">O miejsce drugie rywalizują: '
+		msg += '<div style="text-align: center;"><p style="color: black;">' + I18n.t('overtime.forSecond') + ' '
 			+ Quiz.overtime.secondPlace.map((player) => `<strong>${player.name}</strong>`).join(', ') + '</p></div>';
 	}
 	if (Quiz.overtime.thirdPlace.length > 1) {
-		msg += '<div style="text-align: center;"><p style="color: black;">O miejsce trzecie rywalizują: '
+		msg += '<div style="text-align: center;"><p style="color: black;">' + I18n.t('overtime.forThird') + ' '
 			+ Quiz.overtime.thirdPlace.map((player) => `<strong>${player.name}</strong>`).join(', ') + '</p></div>';
 	}
-	error(msg, 'Dogrywka!');
+	error(msg, I18n.t('overtime.title'));
 };
 
 function debug() {

@@ -18,9 +18,13 @@
 	<script type="text/javascript" src="js/quizFiles.js"></script>
 	<script type="text/javascript" src="js/config.js"></script>
 	<script type="text/javascript" src="js/db.js"></script>
+	<script type="text/javascript" src="locales/pl.js"></script>
+	<script type="text/javascript" src="locales/en.js"></script>
+	<script type="text/javascript" src="locales/szl.js"></script>
+	<script type="text/javascript" src="js/i18n.js"></script>
 	<script type="text/javascript" src="js/common.js"></script>
 	<script type="text/javascript" src="js/quiz.js"></script>
-	<title>Konkursotron 3.0 Szagma</title>
+	<title></title>
 </head>
 <body>
 
@@ -39,8 +43,8 @@
 		<div class="modal-dialog">
 		  <div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title" id="error-modal-title">Błąd!</h5>
-				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+				<h5 class="modal-title" id="error-modal-title" data-i18n="modal.error.title"></h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="modal.close"></button>
 			</div>
 			<div class="modal-body">
 				<p id="error-modal-content"></p>
@@ -53,16 +57,16 @@
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
-					  <h1 class="modal-title fs-5" id="points-modal-title">Punkty</h1>
-					  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+					  <h1 class="modal-title fs-5" id="points-modal-title" data-i18n="modal.points.title"></h1>
+					  <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="modal.close"></button>
 				</div>
 				<div class="modal-body">
 					<table class="table table-striped">
 						<thead>
 							<tr>
-								<th>Lp.</th>
-								<th>Gracz</th>
-								<th>Punkty</th>
+								<th data-i18n="modal.points.colNo"></th>
+								<th data-i18n="modal.points.colPlayer"></th>
+								<th data-i18n="modal.points.colPoints"></th>
 							</tr>
 						</thead>
 						<tbody id="points-modal-tbody">
@@ -97,8 +101,8 @@
 						<div id="quiz-text-bottom" class="quiz-info-line d-none"></div>
 					</div>
 					<div class="center" id="main-page-answer-buttons">
-						<button class="btn btn-lg btn-primary" id="quizStart" onclick="startQuiz()">Start!</button>
-						<button class="btn btn-large btn-primary d-none" id="getAnswer" onclick="questionAnswered()">Odpowiedź</button>
+						<button class="btn btn-lg btn-primary" id="quizStart" onclick="startQuiz()" data-i18n="quiz.start"></button>
+						<button class="btn btn-large btn-primary d-none" id="getAnswer" onclick="questionAnswered()" data-i18n="quiz.answer"></button>
 						<button class="btn btn-large btn-danger d-none" id="notAnswered" onclick="answeredIncorrectly()"><i class="bi bi-hand-thumbs-down"></i>0</button>
 					</div>
 					<div class="center" id="main-page-points-buttons">
@@ -108,7 +112,7 @@
 						<button class="btn btn-large btn-warning d-none" id="buttonTwo" onclick="answeredCorrectly(2)"><i class="bi bi-hand-thumbs-up"></i> 2</button>
 					</div>
 					<div class="center" id="main-page-control-buttons">
-						<button class="btn btn-large btn-danger d-none" id="endQuiz" onclick="endQuiz()">Zakończ konkurs</button>
+						<button class="btn btn-large btn-danger d-none" id="endQuiz" onclick="endQuiz()" data-i18n="quiz.end"></button>
 					</div>
 				</div>				
 			</div>
@@ -128,7 +132,7 @@
 							<div class="bordered-medium" id="player-choice">
 								<div class="center">
 									<div>
-										<label for="players" class="mg-b-10">Gracze</label>
+										<label for="players" class="mg-b-10" data-i18n="settings.players"></label>
 										<button class="btn btn-tiny btn-primary inline" onclick="playerAddShow()">+</button>
 										<button class="btn btn-tiny btn-warning inline" onclick="playerRemove()">-</button>
 										<button class="btn btn-tiny btn-danger inline" onclick="playersPurge()">&times;</button>
@@ -150,7 +154,7 @@
 										</div>
 										<div class="row g-2 align-items-center mg-b-10">
 											<div class="col-auto">
-												<label for="quiz-list" class="col-form-label">Konkursy</label>
+												<label for="quiz-list" class="col-form-label" data-i18n="settings.quizzes"></label>
 											</div>
 											<div class="col-auto">
 												<select class="form-select" id="quiz-list"></select>
@@ -158,30 +162,30 @@
 										</div>
 									</div>
 									<div class="bordered-medium mg-b-20" id="quiz-settings">
-										<span class="bolder">Ustawienia</span>
+										<span class="bolder" data-i18n="settings.title"></span>
 										<div class="quiz-info-line mg-b-10"></div>
 										<div class="container">
 											<div class="row">
 												<div class="col">
 													<form>
 														<fieldset class="quiz-settings-form">
-															<legend>Przyciski</legend>
+															<legend data-i18n="settings.buttons.legend"></legend>
 															<div class="mb-3">
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" id="settingsHalfPoint" onchange="settingsToggle(this)">
-																	<label class="form-check-label" for="settingsHalfPoint">0.5 punkta</label>
+																	<label class="form-check-label" for="settingsHalfPoint" data-i18n="settings.buttons.halfPoint"></label>
 																</div>
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" id="settingsOnePoint" onchange="settingsToggle(this)" disabled>
-																	<label class="form-check-label" for="settingsOnePoint">1 punkt</label>
+																	<label class="form-check-label" for="settingsOnePoint" data-i18n="settings.buttons.onePoint"></label>
 																</div>
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" id="settingsOneHalfPoint" onchange="settingsToggle(this)">
-																	<label class="form-check-label" for="settingsOneHalfPoint">1.5 punkta</label>
+																	<label class="form-check-label" for="settingsOneHalfPoint" data-i18n="settings.buttons.oneHalfPoint"></label>
 																</div>
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" id="settingsTwoPoints" onchange="settingsToggle(this)">
-																	<label class="form-check-label" for="settingsTwoPoints">2 punkty</label>
+																	<label class="form-check-label" for="settingsTwoPoints" data-i18n="settings.buttons.twoPoints"></label>
 																</div>
 															</div>
 														</fieldset>
@@ -190,26 +194,15 @@
 												<div class="col">
 													<form>
 														<fieldset class="quiz-settings-form">
-															<legend>Inne</legend>
+															<legend data-i18n="settings.other.legend"></legend>
 															<div class="mb-3">
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" id="settingsShowPointsAfterEachRound" onchange="settingsToggle(this)">
-																	<label class="form-check-label" for="settingsShowPointsAfterEachRound">Pokazuj punkty po każdej rundzie</label>
+																	<label class="form-check-label" for="settingsShowPointsAfterEachRound" data-i18n="settings.showPointsAfterRound"></label>
 																</div>
-															</div>
-														</fieldset>
-													</form>
-												</div>
-											</div>
-											<div class="row">
-												<div class="col">
-													<form>
-														<fieldset class="quiz-settings-form">
-															<legend>Inne</legend>
-															<div class="mb-3">
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" id="settingsShowQuestionAudioOnAnswer" onchange="settingsToggle(this)">
-																	<label class="form-check-label" for="settingsShowQuestionAudioOnAnswer">Pokaż audio z pytania na ekranie odpowiedzi</label>
+																	<label class="form-check-label" for="settingsShowQuestionAudioOnAnswer" data-i18n="settings.showQuestionAudioOnAnswer"></label>
 																</div>
 															</div>
 														</fieldset>
@@ -219,19 +212,31 @@
 										</div>
 									</div>
 									<div class="bordered-medium" id="quiz-interface">
-										<span class="bolder">Interfejs</span>
+										<span class="bolder" data-i18n="settings.interface.title"></span>
 										<div class="quiz-info-line mg-b-10"></div>
 										<div class="container">
 											<div class="row g-2 align-items-center mg-b-10">
 												<div class="col-auto">
-													<label for="logo-list" class="col-form-label">Logo</label>
+													<label for="language-list" class="col-form-label" data-i18n="settings.language"></label>
+												</div>
+												<div class="col-auto">
+													<select class="form-select" id="language-list" onchange="changeLanguage(this)">
+														<option value="pl" data-i18n="settings.language.pl"></option>
+														<option value="en" data-i18n="settings.language.en"></option>
+														<option value="szl" data-i18n="settings.language.szl"></option>
+													</select>
+												</div>
+											</div>
+											<div class="row g-2 align-items-center mg-b-10">
+												<div class="col-auto">
+													<label for="logo-list" class="col-form-label" data-i18n="settings.logo"></label>
 												</div>
 												<div class="col-auto">
 													<select class="form-select" id="logo-list" onchange="changeLogo(this)">
-														<option value="totoro">Totoro (2.x)</option>
-														<option value="szagma">Szagma (3.0)</option>
-														<option value="colorado">Chris Colorado (3.1)</option>
-														<option value="custom">Własne</option>
+														<option value="totoro" data-i18n="settings.logo.totoro"></option>
+														<option value="szagma" data-i18n="settings.logo.szagma"></option>
+														<option value="colorado" data-i18n="settings.logo.colorado"></option>
+														<option value="custom" data-i18n="settings.logo.custom"></option>
 													</select>
 												</div>
 											</div>
@@ -241,15 +246,15 @@
 												<div class="col">
 													<form>
 														<fieldset class="quiz-settings-form">
-															<legend>Ekran zwycięzców</legend>
+															<legend data-i18n="settings.victoryScreen.legend"></legend>
 															<div class="mb-3">
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" id="settingsUseCustomVictoryImage" onchange="settingsToggle(this)">
-																	<label class="form-check-label" for="settingsUseCustomVictoryImage">Własny obrazek</label>
+																	<label class="form-check-label" for="settingsUseCustomVictoryImage" data-i18n="settings.victoryScreen.customImage"></label>
 																</div>
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" id="settingsUseCustomVictoryFanfare" onchange="settingsToggle(this)">
-																	<label class="form-check-label" for="settingsUseCustomVictoryFanfare">Własne mp3</label>
+																	<label class="form-check-label" for="settingsUseCustomVictoryFanfare" data-i18n="settings.victoryScreen.customMp3"></label>
 																</div>
 															</div>
 														</fieldset>
@@ -266,8 +271,8 @@
 										<button type="button" class="btn btn-close btn-sm mg-b-10" data-slide="up"></button>
 										<form class="form-inline" id="player-add-form">
 											<div class="input-group mb-3">
-												<input type="text" class="form-control shadow-none" id="player-add-name" placeholder="Nazwa/Imię" />
-												<button type="button" class="btn btn-outline-secondary" onclick="playerAdd()">Dodaj</button>
+												<input type="text" class="form-control shadow-none" id="player-add-name" data-i18n-placeholder="playerAdd.placeholder" />
+												<button type="button" class="btn btn-outline-secondary" onclick="playerAdd()" data-i18n="playerAdd.add"></button>
 											</div>
 										</form>
 									</div>
@@ -285,11 +290,9 @@
 				<div class="toast-header">
 				  <div class="toast-icon rounded me-2"></div>
 				  <strong class="me-auto toast-title"></strong>
-				  <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+				  <button type="button" class="btn-close" data-bs-dismiss="toast" data-i18n-aria="modal.close"></button>
 				</div>
-				<div class="toast-body">
-				  Hello, world! This is a toast message.
-				</div>
+				<div class="toast-body"></div>
 			</div>
 
 		</div>

@@ -31,6 +31,9 @@ class Settings {
         if (typeof this.storage['logo'] === 'undefined') {
             this.logo = UI.defaults.LOGO_IMAGE;
         }
+        if (typeof this.storage['language'] === 'undefined') {
+            this.language = 'pl';
+        }
     }
 
     get storage() {
@@ -121,5 +124,13 @@ class Settings {
 
     set logo(value) {
         this.writeToStorage('logo', value);
+    }
+
+    get language() {
+        return this.storage.language || 'pl';
+    }
+
+    set language(value) {
+        this.writeToStorage('language', value);
     }
 }
