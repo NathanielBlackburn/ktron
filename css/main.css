@@ -167,6 +167,14 @@ button.rounded {
 	width: 20px;
 }
 
+#points-modal tr.player-removed td {
+	color: #999;
+}
+
+#points-modal tr.player-removed [data-role="player-name"] {
+	text-decoration: line-through;
+}
+
 .inline {
 	display: inline-block;
 }

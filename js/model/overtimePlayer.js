@@ -1,7 +1,8 @@
-// Uncomment for testing
-// const Player = require('./player').Player;
+const PlayerBase = (typeof module !== 'undefined' && module.exports)
+    ? require('./player').Player
+    : window.Player;
 
-class OvertimePlayer extends Player {
+class OvertimePlayer extends PlayerBase {
 
     constructor(player, status = 'pending') {
         super(player.ID, player.name, player.order);
@@ -14,7 +15,7 @@ class OvertimePlayer extends Player {
 
     static initFromJSON(json) {
         const obj = JSON.parse(json);
-        return new OvertimePlayer(Player.initFromJSON(obj.player), obj.status);
+        return new OvertimePlayer(PlayerBase.initFromJSON(obj.player), obj.status);
     }
 
     equals(overtimePlayer) {
@@ -23,5 +24,8 @@ class OvertimePlayer extends Player {
     }
 }
 
-// Uncomment for testing
-// module.exports = { OvertimePlayer };
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { OvertimePlayer };
+} else if (typeof window !== 'undefined') {
+    window.OvertimePlayer = OvertimePlayer;
+}

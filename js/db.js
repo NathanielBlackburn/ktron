@@ -1,10 +1,11 @@
 const DB = {
 
 	dBase: new localStorageDB('konkursotron', localStorage),
-	version: '3.1.1',
+	version: '3.1.2',
 	migration_versions: [
 		'3.1.0',
 		'3.1.1',
+		'3.1.2',
 	],
 
 	Players: 'players',
@@ -17,11 +18,11 @@ const DB = {
 	Settings: 'settings',
 
 	createDB: function() {
-		this.createTableIfNotExists(this.Players, ['name', 'order']);
+		this.createTableIfNotExists(this.Players, ['name', 'order', 'removed']);
 		this.createTableIfNotExists(this.Games, ['game_code', 'status']);
 		this.createTableIfNotExists(this.Rounds, ['round']);
 		this.createTableIfNotExists(this.Questions, ['id_question', 'id_player']);
-		this.createTableIfNotExists(this.Points, ['id_player', 'points', 'cancelled', 'overtime']);
+		this.createTableIfNotExists(this.Points, ['id_player', 'points', 'overtime']);
 		this.createTableIfNotExists(this.Overtime, ['data']);
 		this.createTableIfNotExists(this.DatabaseVersion, ['version']);
 		
@@ -33,6 +34,65 @@ const DB = {
 		if (!this.dBase.tableExists(name)) {
 			this.dBase.createTable(name, fields);
 		}
+	},
+
+	rebuildTable: function(tableName, fields, rows) {
+		if (this.dBase.tableExists(tableName)) {
+			this.dBase.dropTable(tableName);
+		}
+		this.dBase.createTable(tableName, fields);
+		rows.forEach((row) => {
+			const data = {};
+			fields.forEach((field) => {
+				data[field] = row[field];
+			});
+			this.dBase.insert(tableName, data);
+		});
+	},
+
+	addColumns: function(tableName, newFields, defaultValues) {
+		if (!this.dBase.tableExists(tableName)) {
+			return;
+		}
+		const addedFields = (Array.isArray(newFields) ? newFields : [newFields])
+			.filter((field) => !this.dBase.columnExists(tableName, field));
+		if (addedFields.length === 0) {
+			return;
+		}
+		const fields = this.dBase.tableFields(tableName)
+			.filter((field) => field !== 'ID')
+			.concat(addedFields);
+		const rows = this.dBase.queryAll(tableName).map((row) => {
+			const data = {};
+			fields.forEach((field) => {
+				if (row[field] !== undefined) {
+					data[field] = row[field];
+				} else if (addedFields.includes(field)) {
+					data[field] = typeof defaultValues === 'object' && defaultValues !== null
+						? defaultValues[field]
+						: defaultValues;
+				}
+			});
+			return data;
+		});
+		this.rebuildTable(tableName, fields, rows);
+	},
+
+	removeColumns: function(tableName, columnsToRemove) {
+		if (!this.dBase.tableExists(tableName)) {
+			return;
+		}
+		const removed = Array.isArray(columnsToRemove) ? columnsToRemove : [columnsToRemove];
+		const fields = this.dBase.tableFields(tableName)
+			.filter((field) => field !== 'ID' && !removed.includes(field));
+		const rows = this.dBase.queryAll(tableName).map((row) => {
+			const data = {};
+			fields.forEach((field) => {
+				data[field] = row[field];
+			});
+			return data;
+		});
+		this.rebuildTable(tableName, fields, rows);
 	},
 
 	update: function() {
@@ -60,11 +120,29 @@ const DB = {
 				return;
 			}
 			switch (migrationVersion) {
+				case '3.1.2':
+					this.migrateTo312();
+					break;
 				default:
 			}
 			this.dBase.update(this.DatabaseVersion, null, (row) => { row.version = migrationVersion; return row; });
 			this.dBase.commit();
 		});
+	},
+
+	migrateTo312: function() {
+		if (this.dBase.tableExists(this.Players) && !this.dBase.columnExists(this.Players, 'removed')) {
+			this.addColumns(this.Players, ['removed'], false);
+		}
+		if (this.dBase.tableExists(this.Points) && this.dBase.columnExists(this.Points, 'cancelled')) {
+			const rows = this.dBase.queryAll(this.Points).map((row) => ({
+				id_player: row.id_player,
+				points: row.points,
+				overtime: row.overtime || false,
+			}));
+			this.rebuildTable(this.Points, ['id_player', 'points', 'overtime'], rows);
+		}
+		this.dBase.commit();
 	},
 
 	padVersion: function(version) {
@@ -79,7 +157,40 @@ const DB = {
 	},
 
 	createPlayer: function(name) {
-		this.dBase.insert(this.Players, {name: name});
+		this.dBase.insert(this.Players, {name: name, removed: false});
+		this.dBase.commit();
+	},
+
+	markPlayerRemoved: function(playerId) {
+		this.dBase.update(this.Players, {ID: playerId}, (row) => {
+			row.removed = true;
+			return row;
+		});
+		this.dBase.commit();
+	},
+
+	isPlayerRemoved: function(playerId) {
+		const player = this.fetchPlayer(playerId);
+		return player ? !!player.removed : false;
+	},
+
+	zeroPlayerPoints: function(playerId) {
+		const player = {ID: playerId};
+		const mainPoints = this.fetchPlayerPoints(playerId, false);
+		const overtimePoints = this.fetchPlayerPoints(playerId, true);
+		if (mainPoints !== 0) {
+			this.addPoints(player, -mainPoints, false);
+		}
+		if (overtimePoints !== 0) {
+			this.addPoints(player, -overtimePoints, true);
+		}
+	},
+
+	clearRemovedFlags: function() {
+		this.dBase.update(this.Players, null, (row) => {
+			row.removed = false;
+			return row;
+		});
 		this.dBase.commit();
 	},
 
@@ -109,6 +220,7 @@ const DB = {
 
 	createGame: function(quizCode) {
 		this.purge(false);
+		this.clearRemovedFlags();
 		this.dBase.insert(this.Games, {game_code: quizCode, status: 'unfinished'});
 		const players = randomizeArray(this.dBase.queryAll(this.Players));
 		players.forEach((player, pos) => {

@@ -107,16 +107,27 @@ const createPointsModal = () => {
 	const tbody = $('#points-modal-tbody');
 	$(tbody).empty();
 	players.forEach((player) => {
+		const removeButton = Quiz.inProgress && !player.removed
+			? `<button type="button" class="btn btn-tiny btn-outline-secondary ms-1" data-role="remove-player" onclick="removePlayerFromGame(${player.ID})" aria-label="Usuń gracza">×</button>`
+			: '';
 		let currentStats = tbody.html();
-		currentStats += `<tr data-player-id="${player.ID}"><td data-role="lp"></td><td>${player.name}</td><td><button class="btn btn-tiny btn-danger inline" data-role="points-change" onclick="changePointsManually(${player.ID}, false)">-</button><span style="display: inline-block; width: 50px; text-align: center;"><span data-role="points"></span> <span data-role="overtime" style="font-size: small"></span></span><button class="btn btn-tiny btn-primary inline" data-role="points-change" onclick="changePointsManually(${player.ID}, true)">+</button></td></tr>`;
+		currentStats += `<tr data-player-id="${player.ID}"><td data-role="lp"></td><td data-role="name-cell"><span data-role="player-name">${player.name}</span>${removeButton}</td><td><button class="btn btn-tiny btn-danger inline" data-role="points-change" onclick="changePointsManually(${player.ID}, false)">-</button><span style="display: inline-block; width: 50px; text-align: center;"><span data-role="points"></span> <span data-role="overtime" style="font-size: small"></span></span><button class="btn btn-tiny btn-primary inline" data-role="points-change" onclick="changePointsManually(${player.ID}, true)">+</button></td></tr>`;
 		tbody.html(currentStats);
 	});
 };
 
-const togglePointsModal = () => {
+const hidePointsModal = () => {
 	if ($('#points-modal').hasClass('show')) {
 		const modal = bootstrap.Modal.getInstance('#points-modal');
-		modal.hide();
+		if (modal) {
+			modal.hide();
+		}
+	}
+};
+
+const togglePointsModal = () => {
+	if ($('#points-modal').hasClass('show')) {
+		hidePointsModal();
 	} else {
 		showPointsModal();
 	}
@@ -127,6 +138,11 @@ const showPointsModal = () => {
 	if (!DB.canChangePoints) {
 		$('button[data-role="points-change"]').hide();
 	}
+	if (Quiz.inProgress) {
+		$('#points-modal button[data-role="remove-player"]').show();
+	} else {
+		$('#points-modal button[data-role="remove-player"]').hide();
+	}
 	const myModal = new bootstrap.Modal('#points-modal');
 	myModal.toggle();
 };
@@ -134,16 +150,20 @@ const showPointsModal = () => {
 const updatePointsModal = (sort = true) => {
 	const players = DB.fetchAllPlayers();
 	players.forEach((player) => {
-		player['points'] = DB.fetchPlayerPoints(player.ID, false);
-		player['overtimePoints'] = DB.fetchPlayerPoints(player.ID, true);
+		player['points'] = player.removed ? 0 : DB.fetchPlayerPoints(player.ID, false);
+		player['overtimePoints'] = player.removed ? 0 : DB.fetchPlayerPoints(player.ID, true);
 	});
 	const tbody = document.querySelector('#points-modal-tbody');
 	players.forEach((player) => {
 		const row = tbody.querySelector(`tr[data-player-id="${player.ID}"]`);
+		row.classList.toggle('player-removed', !!player.removed);
 		const pointsSpan = row.querySelector('span[data-role="points"]');
-		pointsSpan.textContent = player.points;
+		pointsSpan.textContent = player.removed ? 0 : player.points;
 		const overtimeSpan = row.querySelector('span[data-role="overtime"]');
-		overtimeSpan.textContent = formatOvertimePoints(player.overtimePoints);
+		overtimeSpan.textContent = player.removed ? '' : formatOvertimePoints(player.overtimePoints);
+		row.querySelectorAll('[data-role="remove-player"], [data-role="points-change"]').forEach((el) => {
+			el.style.display = player.removed ? 'none' : '';
+		});
 	});
 	if (sort) {
 		reorderWithNoAnimation();

@@ -1,8 +1,9 @@
 {
   "name": "konkursotron",
-  "version": "3.0.0",
+  "version": "3.1.2",
   "scripts": {
-    "ciamk": "node tools/ciamk.mjs"
+    "ciamk": "node tools/ciamk.mjs",
+    "test": "node test/overtimeTests.js"
   },
   "dependencies": {
     "bootstrap": "^5.3.2",

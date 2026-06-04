@@ -1,28 +1,28 @@
 const Overtime = require('../js/model/overtime').Overtime;
 
 const pointsToPlaces = (results) => {
-	const places = [
-		[],
-		[],
-		[],
-	];
+	const places = [[], [], []];
+	if (!results.length) {
+		return places;
+	}
+	const maxPlaces = Math.min(3, results.length);
 	let maxPoints = results[0].points;
-    let currentPlace = 0;
-    results.forEach((result) => {
-        if (currentPlace > 2) {
-            return;
-        }
-        if (result.points == maxPoints) {
-            places[currentPlace].push(result);
-        } else {
-            currentPlace += places[currentPlace].length;
-            maxPoints = result.points;
-            if (currentPlace > 2) {
-                return;
-            }
-            places[currentPlace].push(result);
-        }
-    });
+	let currentPlace = 0;
+	results.forEach((result) => {
+		if (currentPlace > maxPlaces - 1) {
+			return;
+		}
+		if (result.points == maxPoints) {
+			places[currentPlace].push(result);
+		} else {
+			currentPlace += places[currentPlace].length;
+			maxPoints = result.points;
+			if (currentPlace > maxPlaces - 1) {
+				return;
+			}
+			places[currentPlace].push(result);
+		}
+	});
 	return places;
 };
 

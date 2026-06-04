@@ -9,24 +9,90 @@ const Quiz = {
 		return typeof this.code !== 'undefined' && this.code != '';
 	},
 
-	get isFirstPlayer() {
-		return !this.overtime && this.currentPlayerIndex == 0;
-	},
-
 	get currentPlayer() {
-		return (this.overtime) ? this.overtime.findNextPlayer() : this.players[this.currentPlayerIndex];
+		if (this.overtime) {
+			return this.overtime.findNextPlayer();
+		}
+		return resolveCurrentPlayer();
 	},
 
 	get canBeFinished() {
-		return this.isFirstPlayer && this.round > 1 && $('#getAnswer').is(':visible');
+		return isFirstActiveInRound() && this.round > 1 && $('#getAnswer').is(':visible');
 	}
+};
+
+const isRemoved = (player) => player && !!player.removed;
+
+const activePlayers = () => (Quiz.players || []).filter((player) => !isRemoved(player));
+
+const activePlayersCount = () => activePlayers().length;
+
+const resolveCurrentPlayer = () => {
+	if (!Quiz.players) {
+		return undefined;
+	}
+	let idx = Quiz.currentPlayerIndex;
+	while (idx < Quiz.players.length && isRemoved(Quiz.players[idx])) {
+		idx += 1;
+	}
+	return idx < Quiz.players.length ? Quiz.players[idx] : undefined;
+};
+
+const isFirstActiveInRound = () => {
+	if (Quiz.overtime) {
+		return false;
+	}
+	const current = resolveCurrentPlayer();
+	const firstActive = activePlayers()[0];
+	return current && firstActive && current.ID === firstActive.ID;
+};
+
+const ensureActivePlayerIndex = () => {
+	while (Quiz.currentPlayerIndex < Quiz.players.length && isRemoved(Quiz.players[Quiz.currentPlayerIndex])) {
+		Quiz.currentPlayerIndex += 1;
+	}
+};
+
+const handleEndOfLap = () => {
+	Quiz.currentPlayerIndex = 0;
+	ensureActivePlayerIndex();
+	if (activePlayersCount() === 0 || Quiz.currentPlayerIndex >= Quiz.players.length) {
+		endQuiz(true);
+		return true;
+	}
+	debug('Idziemy do kolejnej rundy');
+	debug('Zostało pytań: ', questionsLeft());
+	debug('Graczy jest: ', activePlayersCount());
+	if (questionsLeft() < activePlayersCount()) {
+		debug('Za mało pytań w konkursie, wywalamy resztę i spróbujmy skończyć quiz.');
+		DB.useUpAllRemainingQuestions(Quiz.questions);
+		Quiz.questions.forEach((question) => question.used = true);
+		endQuiz(true);
+		return true;
+	}
+	Quiz.round += 1;
+	if (Quiz.currentPlayerIndex == 0) {
+		showToast('Początek nowej rundy!');
+	}
+	return false;
+};
+
+const continueAfterRemoval = () => {
+	$('#image-container').empty();
+	$('#movie-container').empty();
+	$('#audio-container').empty();
+	$('#question-text').empty();
+	hideEl('#image-container');
+	hideEl('#movie-container');
+	hideEl('#audio-container');
+	hideEl('#question-text');
+	nextQuestion();
+	updateQuizInfo();
 };
 
 const startQuiz = () => {
 	if (!$('#players option').length) {
 		error('Nie wprowadzono graczy!');
-	} else if (DB.fetchAllPlayers().length < 3) {
-		showToast('Wprowadź min. trzy drużyny.', 'error');
 	} else {
 		const quizCode = $('#questions-choice').find(':selected').first().data('quizCode');
 		startGameProgress(quizCode);
@@ -50,7 +116,6 @@ const restoreGameProgress = (game) => {
 	hideEl('#quizStart');
 	showEl('#cinema-light');
 	showEl('#show-points');
-	createPointsModal();
 	const index = KTron.quizzes.findIndex((quiz) => quiz.code == game.game_code);
 	Quiz.questions = KTron.quizzes[index].questions;
 	Quiz.code = KTron.quizzes[index].code;
@@ -62,6 +127,7 @@ const restoreGameProgress = (game) => {
 		question['used'] = usedQuestions.includes(question.id);
 		return question;
 	});
+	createPointsModal();
 	let questionToShow;
 	if (game.status == 'overtime') {
 		const overtime = DB.fetchOvertime();
@@ -75,6 +141,7 @@ const restoreGameProgress = (game) => {
 	} else {
 		const lastQuestion = DB.fetchLastQuestion();
 		Quiz.currentPlayerIndex = Quiz.players.findIndex((player) => player.ID == lastQuestion.id_player);
+		ensureActivePlayerIndex();
 		Quiz.round = DB.fetchLastRound();
 		questionToShow = findQuestion(lastQuestion.id_question);
 	}
@@ -124,18 +191,27 @@ const getRandomNumber = (topLimit) => {
 };
 
 const nextQuestion = () => {
+	if (!Quiz.overtime && !resolveCurrentPlayer()) {
+		if (handleEndOfLap()) {
+			return;
+		}
+	}
+	const currentPlayer = Quiz.currentPlayer;
+	if (!currentPlayer) {
+		return;
+	}
 	const unusedQuestions = Quiz.questions.filter(q => !q.used);
 	if (unusedQuestions.length == 0) {
 		Quiz.currentQuestion = createFakeQuestion();
 		showQuestion(Quiz.currentQuestion);
 	} else {
 		const newQuestion = unusedQuestions[getRandomNumber(unusedQuestions.length)];
-		DB.useUpQuestion(newQuestion, Quiz.currentPlayer);
+		DB.useUpQuestion(newQuestion, currentPlayer);
 		newQuestion.used = true;
 		Quiz.currentQuestion = newQuestion;
 		showQuestion(Quiz.currentQuestion);
 	}
-	if (Quiz.isFirstPlayer) {
+	if (isFirstActiveInRound()) {
 		DB.startRound(Quiz.round);
 	}
 	updateQuizInfo();
@@ -190,7 +266,11 @@ const questionsLeft = () => {
 };
 
 const roundsLeft = () => {
-	return Math.floor((questionsLeft() + 1 + Quiz.currentPlayerIndex) / Quiz.players.length) - 1;
+	const count = activePlayersCount();
+	if (count === 0) {
+		return 0;
+	}
+	return Math.floor((questionsLeft() + 1 + Quiz.currentPlayerIndex) / count) - 1;
 };
 
 const endTurn = () => {
@@ -215,21 +295,8 @@ const endTurn = () => {
 				Quiz.questions.forEach((question) => question.used = true);
 			}
 		} else {
-			Quiz.currentPlayerIndex = 0;
-			debug('Idziemy do kolejnej rundy');
-			debug('Zostało pytań: ', questionsLeft());
-			debug('Graczy jest: ', Quiz.players.length);
-			if (questionsLeft() < Quiz.players.length) {
-				debug('Za mało pytań w konkursie, wywalamy resztę i spróbujmy skończyć quiz.');
-				DB.useUpAllRemainingQuestions(Quiz.questions);
-				Quiz.questions.forEach((question) => question.used = true);
-				endQuiz(true);
+			if (handleEndOfLap()) {
 				return;
-			} else {
-				Quiz.round += 1;
-				if (Quiz.currentPlayerIndex == 0) {
-					showToast('Początek nowej rundy!');
-				}
 			}
 		}
 	}
@@ -468,8 +535,9 @@ const randomizeArray = (array) => {
 
 const updateQuizInfo = () => {
 	let currentPlayer = '';
-	if (typeof Quiz.currentPlayer !== 'undefined') {
-		currentPlayer = '<div class="info-quiz" id="info-quiz-player"><div class="team-name-label">Odpowiada: </div><div class="team-name">' + Quiz.currentPlayer.name + '</div></div>';
+	const player = Quiz.currentPlayer;
+	if (player) {
+		currentPlayer = '<div class="info-quiz" id="info-quiz-player"><div class="team-name-label">Odpowiada: </div><div class="team-name">' + player.name + '</div></div>';
 	}
 	let msg = '<div class="info-quiz" id="info-quiz-name">Tytuł: <strong>' + Quiz.title + '</strong></div>';
 	if (!Quiz.overtime) {
@@ -537,7 +605,7 @@ const togglePointButtons = (show = true) => {
 };
 
 const getResults = () => {
-	const players = DB.fetchAllPlayers();
+	const players = DB.fetchAllPlayers().filter((player) => !player.removed);
 	const result = players.reduce((acc, player) => {
 		acc.push({
 			ID: player.ID,
@@ -562,45 +630,51 @@ const getResults = () => {
 };
 
 const pointsToPlaces = (results) => {
-	const places = [
-		[],
-		[],
-		[],
-	];
+	const places = [[], [], []];
+	if (!results.length) {
+		return places;
+	}
+	const maxPlaces = Math.min(3, results.length);
 	let maxPoints = results[0].points;
-    let currentPlace = 0;
-    results.forEach((result) => {
-        if (currentPlace > 2) {
-            return;
-        }
-        if (result.points == maxPoints) {
-            places[currentPlace].push(result);
-        } else {
-            currentPlace += places[currentPlace].length;
-            maxPoints = result.points;
-            if (currentPlace > 2) {
-                return;
-            }
-            places[currentPlace].push(result);
-        }
-    });
+	let currentPlace = 0;
+	results.forEach((result) => {
+		if (currentPlace > maxPlaces - 1) {
+			return;
+		}
+		if (result.points == maxPoints) {
+			places[currentPlace].push(result);
+		} else {
+			currentPlace += places[currentPlace].length;
+			maxPoints = result.points;
+			if (currentPlace > maxPlaces - 1) {
+				return;
+			}
+			places[currentPlace].push(result);
+		}
+	});
 	return places;
 };
 
 const showWinner = (places) => {
 	hideEl('#media-container > .quiz-info-line');
-	const firstPlace = places[0].pop();
-	const secondPlace = places[1].pop();
-	const thirdPlace = places[2].pop();
+	const tiers = places.filter((tier) => tier && tier.length);
+	const firstPlace = tiers[0][0];
 	const victoryImagePath = getVictoryImagePath();
 	const victoryFanfarePath = getVictoryFanfarePath();
-	$('#quiz-info').html('<h2>Zwycięzcą, po bojach i znojach, zostaje:</h2><h1><strong style="color: darkorange;">'
+	const placeLine = (place, label, tag) => {
+		return `<${tag}>${label}: <strong>${place.name}</strong> (${place.points} ${pointsToWords(place.points)})` + ` <span style="font-size: small;">${formatOvertimePoints(place.overtimePoints)}</span>` + `</${tag}>`;
+	};
+	let html = '<h2>Zwycięzcą, po bojach i znojach, zostaje:</h2><h1><strong style="color: darkorange;">'
 		+ firstPlace.name.toUpperCase() + '</strong></h1><h2>zdobywszy ' + firstPlace.points + ' ' + pointsToWords(firstPlace.points) + '!' + ` <span style="font-size: small;">${formatOvertimePoints(firstPlace.overtimePoints)}</span>`
 		+ '</h2><h2>Gratulacje od samego Nicolasa Cage\'a!</h2>'
-		+ `<div class="mg-b-10"><img src="${victoryImagePath}" id="victory-image" /></div>`
-		+ '<h4>Miejsce drugie: <strong>' + secondPlace.name + '</strong> (' + secondPlace.points + ' ' + pointsToWords(secondPlace.points) + ')' + ` <span style="font-size: small;">${formatOvertimePoints(secondPlace.overtimePoints)}</span>` + '</h4>'
-		+ '<h5>Miejsce trzecie: <strong>' + thirdPlace.name + '</strong> (' + thirdPlace.points + ' ' + pointsToWords(thirdPlace.points) + ')' + ` <span style="font-size: small;">${formatOvertimePoints(thirdPlace.overtimePoints)}</span>` + '</h5>'
-	);
+		+ `<div class="mg-b-10"><img src="${victoryImagePath}" id="victory-image" /></div>`;
+	if (tiers[1]) {
+		html += placeLine(tiers[1][0], 'Miejsce drugie', 'h4');
+	}
+	if (tiers[2]) {
+		html += placeLine(tiers[2][0], 'Miejsce trzecie', 'h5');
+	}
+	$('#quiz-info').html(html);
 	const victoryImage = document.getElementById('victory-image');
 	victoryImage.onerror = () => {
 		victoryImage.onerror = null;
@@ -641,9 +715,67 @@ const getVictoryFanfarePath = () => {
 };
 
 const getNextPlayer = () => {
-	Quiz.currentPlayerIndex += 1;
+	do {
+		Quiz.currentPlayerIndex += 1;
+	} while (Quiz.currentPlayerIndex < Quiz.players.length && isRemoved(Quiz.players[Quiz.currentPlayerIndex]));
 	return Quiz.currentPlayerIndex;
+};
 
+const removePlayerFromGame = (playerId) => {
+	if (!Quiz.inProgress) {
+		return;
+	}
+	if (!confirm('Czy na pewno usunąć gracza?')) {
+		return;
+	}
+	const player = DB.fetchPlayer(playerId);
+	if (!player || player.removed) {
+		return;
+	}
+	if (activePlayersCount() <= 1) {
+		showToast('Musi zostać przynajmniej jeden aktywny gracz.', 'error');
+		return;
+	}
+	const wasCurrentPlayer = Quiz.overtime
+		? (Quiz.overtime.findNextPlayer()?.ID === playerId)
+		: (resolveCurrentPlayer()?.ID === playerId);
+	const lastQuestion = DB.fetchLastQuestion();
+	const needsRestore = wasCurrentPlayer
+		&& lastQuestion
+		&& lastQuestion.id_player == playerId
+		&& Quiz.currentQuestion
+		&& Quiz.currentQuestion.id != -1;
+	if (needsRestore) {
+		const lastUsedQuestionId = DB.restoreLastQuestion();
+		if (lastUsedQuestionId) {
+			Quiz.questions.filter((question) => question.id == lastUsedQuestionId).forEach((question) => question.used = false);
+		}
+	}
+	DB.markPlayerRemoved(playerId);
+	DB.zeroPlayerPoints(playerId);
+	Quiz.players = DB.fetchAllPlayers();
+	if (Quiz.overtime) {
+		const overtimePlayer = Quiz.overtime.findPlayer((p) => p.ID == playerId);
+		if (overtimePlayer) {
+			overtimePlayer.status = 'finished';
+			DB.saveOvertime(Quiz.overtime);
+		}
+	}
+	updatePointsModal();
+	hidePointsModal();
+	if (wasCurrentPlayer) {
+		if (!Quiz.overtime) {
+			getNextPlayer();
+			if (Quiz.currentPlayerIndex >= Quiz.players.length) {
+				if (handleEndOfLap()) {
+					return;
+				}
+			}
+		}
+		continueAfterRemoval();
+	} else {
+		updateQuizInfo();
+	}
 };
 
 const startOvertime = (overtime) => {
