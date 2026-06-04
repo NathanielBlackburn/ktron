@@ -1,5 +1,4 @@
-window.I18N_LOCALES = window.I18N_LOCALES || {};
-window.I18N_LOCALES.en = {
+export default {
 	"app.title": "Konkursotron 3.0 Szagma",
 	"modal.error.title": "Error!",
 	"modal.close": "Close",
@@ -51,6 +50,7 @@ window.I18N_LOCALES.en = {
 	"toast.error": "Error!",
 	"toast.info": "Info",
 	"toast.newRound": "A new round has begun!",
+	"toast.quizzesLoading": "Quizzes are still loading, please wait.",
 	"error.noPlayers": "No players entered!",
 	"fakeQuestion.text": "The host asks an off-the-cuff question!",
 	"confirm.endGame": "Are you sure you want to end the game?",

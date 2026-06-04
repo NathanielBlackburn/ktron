@@ -1,12 +1,42 @@
-const Quiz = {
+import './setupGlobals.js';
+import { settings } from './model/settings.js';
+import { GameSession } from './model/gameSession.js';
+import { Overtime } from './model/overtime.js';
+import { OvertimeRepository } from './model/overtimeRepository.js';
+import { DB } from './db.js';
+import { KTron } from './config.js';
+import { I18n } from './i18n.js';
+import { error, showToast, pointsToWords, formatOvertimePoints } from './helpers.js';
+import {
+	createPointsModal,
+	hideEl,
+	hidePointsModal,
+	showEl,
+	showPointsModal,
+	updatePointsModal,
+} from './common.js';
+import { arrayIntersection } from './util.js';
+
+export const Quiz = {
 	round: 1,
 	imageTypes: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pre:question', 'pre:answer'],
 	audioTypes: ['mp3', 'm4a'],
 	videoTypes: ['mp4'],
-	settings: new Settings(),
+
+	get settings() {
+		return settings;
+	},
+
+	get code() {
+		return GameSession.code;
+	},
+
+	set code(value) {
+		GameSession.code = value;
+	},
 
 	get inProgress() {
-		return typeof this.code !== 'undefined' && this.code != '';
+		return GameSession.inProgress;
 	},
 
 	get currentPlayer() {
@@ -21,13 +51,13 @@ const Quiz = {
 	}
 };
 
-const isRemoved = (player) => player && !!player.removed;
+export const isRemoved = (player) => player && !!player.removed;
 
-const activePlayers = () => (Quiz.players || []).filter((player) => !isRemoved(player));
+export const activePlayers = () => (Quiz.players || []).filter((player) => !isRemoved(player));
 
-const activePlayersCount = () => activePlayers().length;
+export const activePlayersCount = () => activePlayers().length;
 
-const resolveCurrentPlayer = () => {
+export const resolveCurrentPlayer = () => {
 	if (!Quiz.players) {
 		return undefined;
 	}
@@ -38,7 +68,7 @@ const resolveCurrentPlayer = () => {
 	return idx < Quiz.players.length ? Quiz.players[idx] : undefined;
 };
 
-const isFirstActiveInRound = () => {
+export const isFirstActiveInRound = () => {
 	if (Quiz.overtime) {
 		return false;
 	}
@@ -47,13 +77,13 @@ const isFirstActiveInRound = () => {
 	return current && firstActive && current.ID === firstActive.ID;
 };
 
-const ensureActivePlayerIndex = () => {
+export const ensureActivePlayerIndex = () => {
 	while (Quiz.currentPlayerIndex < Quiz.players.length && isRemoved(Quiz.players[Quiz.currentPlayerIndex])) {
 		Quiz.currentPlayerIndex += 1;
 	}
 };
 
-const handleEndOfLap = () => {
+export const handleEndOfLap = () => {
 	Quiz.currentPlayerIndex = 0;
 	ensureActivePlayerIndex();
 	if (activePlayersCount() === 0 || Quiz.currentPlayerIndex >= Quiz.players.length) {
@@ -77,7 +107,7 @@ const handleEndOfLap = () => {
 	return false;
 };
 
-const continueAfterRemoval = () => {
+export const continueAfterRemoval = () => {
 	$('#image-container').empty();
 	$('#movie-container').empty();
 	$('#audio-container').empty();
@@ -90,7 +120,11 @@ const continueAfterRemoval = () => {
 	updateQuizInfo();
 };
 
-const startQuiz = () => {
+export const startQuiz = () => {
+	if (!KTron.quizzesReady) {
+		showToast(I18n.t('toast.quizzesLoading'), 'warning');
+		return;
+	}
 	if (!$('#players option').length) {
 		error(I18n.t('error.noPlayers'));
 	} else {
@@ -99,7 +133,7 @@ const startQuiz = () => {
 	}
 };
 
-const checkQuizProgress = () => {
+export const checkQuizProgress = () => {
 	const game = DB.fetchUnfinishedGame();
 	if (game) {
 		restoreGameProgress(game);
@@ -108,7 +142,7 @@ const checkQuizProgress = () => {
 	}
 };
 
-const restoreGameProgress = (game) => {
+export const restoreGameProgress = (game) => {
 	$('#version-info').hide();
 	showEl('#quiz-info');
 	showEl('#media-container > .quiz-info-line')
@@ -130,7 +164,7 @@ const restoreGameProgress = (game) => {
 	createPointsModal();
 	let questionToShow;
 	if (game.status == 'overtime') {
-		const overtime = DB.fetchOvertime();
+		const overtime = OvertimeRepository.load();
 		Quiz.overtime = overtime;
 		const unusedQuestions = Quiz.questions.filter(q => !q.used);
 		if (unusedQuestions.length == 0) {
@@ -152,7 +186,7 @@ const restoreGameProgress = (game) => {
 	showEndQuizButton();
 };
 
-const findQuestion = (questionId) => {
+export const findQuestion = (questionId) => {
 	if (Quiz.questions) {
 		const question = Quiz.questions.find((question) => question.id == questionId);
 		return question;
@@ -161,7 +195,7 @@ const findQuestion = (questionId) => {
 	}
 };
 
-const startGameProgress = (quizCode) => {
+export const startGameProgress = (quizCode) => {
 	clearMainPage();
 	const quiz = KTron.quizzes.find((q) => q.code == quizCode);
 	Quiz.questions = quiz.questions;
@@ -182,7 +216,7 @@ const startGameProgress = (quizCode) => {
 	nextQuestion();
 };
 
-const getRandomNumber = (topLimit) => {
+export const getRandomNumber = (topLimit) => {
 	if (KTron.config.dontRandomize) {
 		return 0;
 	} else {
@@ -190,7 +224,7 @@ const getRandomNumber = (topLimit) => {
 	}
 };
 
-const nextQuestion = () => {
+export const nextQuestion = () => {
 	if (!Quiz.overtime && !resolveCurrentPlayer()) {
 		if (handleEndOfLap()) {
 			return;
@@ -219,7 +253,7 @@ const nextQuestion = () => {
 	showEndQuizButton();
 };
 
-const createFakeQuestion = () => {
+export const createFakeQuestion = () => {
 	return {
 		id: -1,
 		questionText: I18n.t('fakeQuestion.text'),
@@ -230,42 +264,42 @@ const createFakeQuestion = () => {
 	};
 };
 
-const questionAnswered = () => {
+export const questionAnswered = () => {
 	hideEl('#getAnswer');
 	hideEl('#endQuiz');
 	togglePointButtons();
 	showAnswer(Quiz.currentQuestion);
 };
 
-const answeredCorrectly = (points = 1) => {
+export const answeredCorrectly = (points = 1) => {
 	const player = Quiz.currentPlayer;
 	if (!Quiz.overtime) {
 		DB.addPoints(player, points);
 	} else {
 		DB.addPoints(player, 1, true);
 		Quiz.overtime.markAnswer(player.ID, 'pass');
-		DB.saveOvertime(Quiz.overtime);
+		OvertimeRepository.save(Quiz.overtime);
 	}
 	endTurn();
 };
 
-const answeredIncorrectly = () => {
+export const answeredIncorrectly = () => {
 	const player = Quiz.currentPlayer;
 	if (!Quiz.overtime) {
 		DB.addPoints(player, 0);
 	} else {
 		DB.addPoints(player, 0, true);
 		Quiz.overtime.markAnswer(player.ID, 'fail');
-		DB.saveOvertime(Quiz.overtime);
+		OvertimeRepository.save(Quiz.overtime);
 	}
 	endTurn();
 };
 
-const questionsLeft = () => {
+export const questionsLeft = () => {
 	return Quiz.questions.filter(q => !q.used).length;
 };
 
-const roundsLeft = () => {
+export const roundsLeft = () => {
 	const count = activePlayersCount();
 	if (count === 0) {
 		return 0;
@@ -273,7 +307,7 @@ const roundsLeft = () => {
 	return Math.floor((questionsLeft() + 1 + Quiz.currentPlayerIndex) / count) - 1;
 };
 
-const endTurn = () => {
+export const endTurn = () => {
 	togglePointButtons(false);
 	if (!Quiz.overtime) {
 		Quiz.currentPlayerIndex = getNextPlayer();
@@ -282,7 +316,7 @@ const endTurn = () => {
 	if (nextRound) {
 		if (Quiz.overtime) {
 			Quiz.overtime.endRound();
-			DB.saveOvertime(Quiz.overtime);
+			OvertimeRepository.save(Quiz.overtime);
 			debug('Zostało pytań: ', questionsLeft());
 			debug('Graczy jest: ', Quiz.overtime.playersToBeAsked.length);
 			if (Quiz.overtime.isPodiumComplete) {
@@ -303,7 +337,7 @@ const endTurn = () => {
 	nextTurn(nextRound);
 };
 
-const nextTurn = (nextRound = false) => {
+export const nextTurn = (nextRound = false) => {
 	$('#image-container').empty();
 	$('#movie-container').empty();
 	$('#audio-container').empty();
@@ -318,7 +352,7 @@ const nextTurn = (nextRound = false) => {
 	}
 };
 
-const endQuiz = (automatic = false, places = null) => {
+export const endQuiz = (automatic = false, places = null) => {
 	if (automatic || (confirm(I18n.t('confirm.endGame')) && confirm(I18n.t('confirm.endGameDefinitely')))) {
 		hideEl('#image-container');
 		hideEl('#movie-container');
@@ -355,13 +389,7 @@ const endQuiz = (automatic = false, places = null) => {
 	}
 };
 
-const arrayIntersection = (arr1, arr2) => {
-	const set1 = new Set(arr1);
-	const set2 = new Set(arr2);
-	return Array.from(set1.intersection(set2));
-};
-
-const showQuestion = (question) => {
+export const showQuestion = (question) => {
 	debug('This question: ');
 	debug(question);
 	debug('---------------------------------------------------');
@@ -379,7 +407,7 @@ const showQuestion = (question) => {
 	createVideoContainer(question, false);
 };
 
-const showAnswer = (question) => {
+export const showAnswer = (question) => {
 	clearMediaContainers();
 	$('#question-text').empty();
 	hideEl('#cat-text');
@@ -397,7 +425,7 @@ const showAnswer = (question) => {
 	createVideoContainer(question, true);
 };
 
-const clearMediaContainers = () => {
+export const clearMediaContainers = () => {
 	$('#image-container').empty();
 	$('#movie-container').empty();
 	$('#audio-container').empty();
@@ -406,7 +434,7 @@ const clearMediaContainers = () => {
 	hideEl('#audio-container');
 };
 
-const createImageContainer = (question, isAnswer) => {
+export const createImageContainer = (question, isAnswer) => {
 	const mediaTypes = (isAnswer ? question.answerType : question.questionType).toLowerCase().trim().split('|');
 	const intersection = arrayIntersection(Quiz.imageTypes, mediaTypes);
 	if (!intersection.length) {
@@ -439,7 +467,7 @@ const createImageContainer = (question, isAnswer) => {
 	showEl(imageContainer);
 };
 
-const createVideoContainer = (question, isAnswer) => {
+export const createVideoContainer = (question, isAnswer) => {
 	const mediaTypes = (isAnswer ? question.answerType : question.questionType).toLowerCase().trim().split('|');
 	const intersection = arrayIntersection(Quiz.videoTypes, mediaTypes);
 	if (!intersection.length) {
@@ -481,7 +509,7 @@ const createVideoContainer = (question, isAnswer) => {
 	}
 };
 
-const createAudioContainer = (question, isAnswer) => {
+export const createAudioContainer = (question, isAnswer) => {
 	const mediaTypes = (isAnswer ? question.answerType : question.questionType).toLowerCase().trim().split('|');
 	const intersection = arrayIntersection(Quiz.audioTypes, mediaTypes);
 	if (!intersection.length) {
@@ -499,19 +527,19 @@ const createAudioContainer = (question, isAnswer) => {
 	showEl(audioContainer);
 };
 
-const escapeHTML = (html) => {
+export const escapeHTML = (html) => {
 	const escape = document.createElement('textarea');
     escape.textContent = html;
     return escape.innerHTML;
 };
 
-const unescapeHTML = (text) => {
+export const unescapeHTML = (text) => {
 	const escape = document.createElement('textarea');
     escape.innerHTML = text;
     return escape.textContent;
 };
 
-const renderTags = (text) => {
+export const renderTags = (text) => {
   const escaped = escapeHTML(text);
 
   return escaped
@@ -519,21 +547,13 @@ const renderTags = (text) => {
     .replace(/\[blue\](.*?)\[\/blue\]/g, '<span class="blue">$1</span>');
 };
 
-const newQuiz = (quizCode) => {
+export const newQuiz = (quizCode) => {
 	const players = DB.createGame(quizCode);
 	Quiz.players = players;
 	Quiz.currentPlayerIndex = 0;
 };
 
-const randomizeArray = (array) => {
-	for (let i = array.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[array[i], array[j]] = [array[j], array[i]];
-	}
-	return array;
-};
-
-const updateQuizInfo = () => {
+export const updateQuizInfo = () => {
 	let currentPlayer = '';
 	const player = Quiz.currentPlayer;
 	if (player) {
@@ -554,7 +574,7 @@ const updateQuizInfo = () => {
 	$('#quiz-info').html(msg);
 };
 
-const clearMainPage = () => {
+export const clearMainPage = () => {
 	showEl('#tools-button');
 	showEl('.quiz-main-logo');
 	showEl('#quizStart');
@@ -569,7 +589,7 @@ const clearMainPage = () => {
 	hideEl('#quiz-info');
 };
 
-const showEndQuizButton = () => {
+export const showEndQuizButton = () => {
 	if (Quiz.overtime) {
 		return;
 	}
@@ -580,7 +600,7 @@ const showEndQuizButton = () => {
 	}
 };
 
-const togglePointButtons = (show = true) => {
+export const togglePointButtons = (show = true) => {
 	if (show) {
 		if (typeof Quiz.overtime === 'undefined' || !Quiz.overtime) {
 			if (Quiz.settings.buttonHalf) {
@@ -604,7 +624,7 @@ const togglePointButtons = (show = true) => {
 	}
 };
 
-const getResults = () => {
+export const getResults = () => {
 	const players = DB.fetchAllPlayers().filter((player) => !player.removed);
 	const result = players.reduce((acc, player) => {
 		acc.push({
@@ -629,7 +649,7 @@ const getResults = () => {
 
 };
 
-const pointsToPlaces = (results) => {
+export const pointsToPlaces = (results) => {
 	const places = [[], [], []];
 	if (!results.length) {
 		return places;
@@ -655,7 +675,7 @@ const pointsToPlaces = (results) => {
 	return places;
 };
 
-const showWinner = (places) => {
+export const showWinner = (places) => {
 	hideEl('#media-container > .quiz-info-line');
 	const tiers = places.filter((tier) => tier && tier.length);
 	const firstPlace = tiers[0][0];
@@ -698,7 +718,7 @@ const showWinner = (places) => {
 	mp3.play();
 };
 
-const getVictoryImagePath = () => {
+export const getVictoryImagePath = () => {
 	if (Quiz.settings.useCustomVictoryImage) {
 		return `res/custom/victory.png`;
 	} else {
@@ -706,7 +726,7 @@ const getVictoryImagePath = () => {
 	}
 };
 
-const getVictoryFanfarePath = () => {
+export const getVictoryFanfarePath = () => {
 	if (Quiz.settings.useCustomVictoryFanfare) {
 		return `res/custom/fanfare.mp3`;
 	} else {
@@ -714,14 +734,14 @@ const getVictoryFanfarePath = () => {
 	}
 };
 
-const getNextPlayer = () => {
+export const getNextPlayer = () => {
 	do {
 		Quiz.currentPlayerIndex += 1;
 	} while (Quiz.currentPlayerIndex < Quiz.players.length && isRemoved(Quiz.players[Quiz.currentPlayerIndex]));
 	return Quiz.currentPlayerIndex;
 };
 
-const removePlayerFromGame = (playerId) => {
+export const removePlayerFromGame = (playerId) => {
 	if (!Quiz.inProgress) {
 		return;
 	}
@@ -758,7 +778,7 @@ const removePlayerFromGame = (playerId) => {
 		const overtimePlayer = Quiz.overtime.findPlayer((p) => p.ID == playerId);
 		if (overtimePlayer) {
 			overtimePlayer.status = 'finished';
-			DB.saveOvertime(Quiz.overtime);
+			OvertimeRepository.save(Quiz.overtime);
 		}
 	}
 	updatePointsModal();
@@ -778,14 +798,14 @@ const removePlayerFromGame = (playerId) => {
 	}
 };
 
-const startOvertime = (overtime) => {
-	DB.startOvertime(overtime);
+export const startOvertime = (overtime) => {
+	OvertimeRepository.begin(overtime);
 	Quiz.overtime = overtime;
 	displayOvertimeMessage();
 	nextTurn();
 };
 
-const displayOvertimeMessage = () => {
+export const displayOvertimeMessage = () => {
 	let msg = '';
 	if (Quiz.overtime.firstPlace.length > 1) {
 		msg += '<div style="text-align: center;"><p style="color: black;">' + I18n.t('overtime.forFirst') + ' '
@@ -802,8 +822,8 @@ const displayOvertimeMessage = () => {
 	error(msg, I18n.t('overtime.title'));
 };
 
-function debug() {
+export function debug() {
 	if (KTron.config.debugMode && console && console.log) {
 		console.log.apply(console, arguments);
 	}
-};
+}

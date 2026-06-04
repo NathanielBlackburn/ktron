@@ -1,15 +1,21 @@
 {
   "name": "konkursotron",
   "version": "3.1.2",
+  "type": "module",
   "scripts": {
-    "ciamk": "node tools/ciamk.mjs",
-    "test": "node test/overtimeTests.js"
+    "dev": "vite",
+    "build": "vite build && node scripts/postbuild.js",
+    "preview": "vite preview",
+    "ciamk": "node tools/ciamk.js",
+    "test": "node --experimental-test-module-mocks test/overtime/overtimeTests.js"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
   },
   "dependencies": {
     "bootstrap": "^5.3.2",
     "bootstrap-icons": "^1.11.3",
     "csv-parse": "^5.5.6",
-    "dexie": "^3.2.4",
     "gsap": "^3.14.2",
     "jquery": "^3.7.1",
     "localstoragedb": "^2.3.2",

@@ -1,25 +1,31 @@
-let i18nReady;
+import pl from '../locales/pl.js';
+import en from '../locales/en.js';
+import szl from '../locales/szl.js';
+import { settings } from './model/settings.js';
 
-const I18n = {
+const I18N_LOCALES = { pl, en, szl };
+
+export let i18nReady = null;
+
+export const initI18n = () => {
+	i18nReady = I18n.init();
+	return i18nReady;
+};
+
+export const I18n = {
 	locale: 'pl',
 	messages: {},
 
 	getStoredLocale() {
-		try {
-			const storage = JSON.parse(window.localStorage.ktron_settings || '{}');
-			return storage.language || 'pl';
-		} catch {
-			return 'pl';
-		}
+		return settings.language;
 	},
 
 	init() {
-		const locales = window.I18N_LOCALES || {};
 		this.locale = this.getStoredLocale();
-		this.messages = locales[this.locale];
+		this.messages = I18N_LOCALES[this.locale];
 		if (!this.messages) {
 			this.locale = 'pl';
-			this.messages = locales.pl || {};
+			this.messages = I18N_LOCALES.pl || {};
 		}
 		this.applyToDocument();
 		return Promise.resolve();
@@ -56,17 +62,11 @@ const I18n = {
 	}
 };
 
-const changeLanguage = (target) => {
+export const changeLanguage = (target) => {
 	const language = target.value;
 	if (language === I18n.locale) {
 		return;
 	}
-	if (typeof Quiz !== 'undefined' && Quiz.settings) {
-		Quiz.settings.language = language;
-	} else {
-		const storage = JSON.parse(window.localStorage.ktron_settings || '{}');
-		storage.language = language;
-		window.localStorage.ktron_settings = JSON.stringify(storage);
-	}
+	settings.language = language;
 	location.reload();
 };

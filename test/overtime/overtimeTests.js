@@ -1,4 +1,16 @@
-const Overtime = require('../js/model/overtime').Overtime;
+import { mock } from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { mockDB } from '../mocks/mockDB.js';
+import { mockAdmin } from '../mocks/mockAdmin.js';
+
+mock.module(fileURLToPath(new URL('../../js/db.js', import.meta.url)), {
+	namedExports: {
+		DB: mockDB,
+		Admin: mockAdmin,
+	},
+});
+
+const { Overtime } = await import('../../js/model/overtime.js');
 
 const pointsToPlaces = (results) => {
 	const places = [[], [], []];
@@ -384,8 +396,8 @@ overtime = new Overtime(pointsToPlaces(results));
 
 console.log('Case 1: In and out.');
 
-let overtimeJSON = overtime.stringify();
-let restoredOvertime = Overtime.initFromJSON(overtimeJSON);
+let overtimeJSON = overtime.serialize();
+let restoredOvertime = Overtime.hydrate(overtimeJSON);
 
 console.assert(restoredOvertime.equals(overtime));
 
@@ -393,8 +405,8 @@ console.log('Case 2: Change status.');
 
 overtime.markAnswer(3, 'fail');
 overtime.markAnswer(1, 'pass');
-overtimeJSON = overtime.stringify();
-restoredOvertime = Overtime.initFromJSON(overtimeJSON);
+overtimeJSON = overtime.serialize();
+restoredOvertime = Overtime.hydrate(overtimeJSON);
 
 console.assert(restoredOvertime.equals(overtime), 'Case 2: Restored is not equal to the original.');
 console.assert(restoredOvertime.thirdPlace[0].status == 'fail', `Jarek should be failed, instead his status is: ${restoredOvertime.thirdPlace[0].status}`);

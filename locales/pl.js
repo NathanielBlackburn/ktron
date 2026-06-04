@@ -1,5 +1,4 @@
-window.I18N_LOCALES = window.I18N_LOCALES || {};
-window.I18N_LOCALES.pl = {
+export default {
 	"app.title": "Konkursotron 3.0 Szagma",
 	"modal.error.title": "Błąd!",
 	"modal.close": "Zamknij",
@@ -51,6 +50,7 @@ window.I18N_LOCALES.pl = {
 	"toast.error": "Błąd!",
 	"toast.info": "Info",
 	"toast.newRound": "Początek nowej rundy!",
+	"toast.quizzesLoading": "Konkursy się jeszcze ładują, poczekaj chwilę.",
 	"error.noPlayers": "Nie wprowadzono graczy!",
 	"fakeQuestion.text": "Prowadzący zadaje pytanie od czapy!",
 	"confirm.endGame": "Czy na pewno zakończyć grę?",

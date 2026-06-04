@@ -1,4 +1,18 @@
-const DB = {
+import localStorageDB from 'localstoragedb/localstoragedb.js';
+import { randomizeArray } from './util.js';
+
+const tables = {
+	players: 'players',
+	games: 'games',
+	rounds: 'rounds',
+	questions: 'questions',
+	points: 'points',
+	overtime: 'overtime',
+	databaseVersion: 'database_version',
+	settings: 'settings',
+};
+
+export const DB = {
 
 	dBase: new localStorageDB('konkursotron', localStorage),
 	version: '3.1.2',
@@ -8,26 +22,17 @@ const DB = {
 		'3.1.2',
 	],
 
-	Players: 'players',
-	Games: 'games',
-	Rounds: 'rounds',
-	Questions: 'questions',
-	Points: 'points',
-	Overtime: 'overtime',
-	DatabaseVersion: 'database_version',
-	Settings: 'settings',
-
 	createDB: function() {
-		this.createTableIfNotExists(this.Players, ['name', 'order', 'removed']);
-		this.createTableIfNotExists(this.Games, ['game_code', 'status']);
-		this.createTableIfNotExists(this.Rounds, ['round']);
-		this.createTableIfNotExists(this.Questions, ['id_question', 'id_player']);
-		this.createTableIfNotExists(this.Points, ['id_player', 'points', 'overtime']);
-		this.createTableIfNotExists(this.Overtime, ['data']);
-		this.createTableIfNotExists(this.DatabaseVersion, ['version']);
-		
-		this.dBase.insert(this.DatabaseVersion, {version: this.version});
-		this.dBase.commit();	
+		this.createTableIfNotExists(tables.players, ['name', 'order', 'removed']);
+		this.createTableIfNotExists(tables.games, ['game_code', 'status']);
+		this.createTableIfNotExists(tables.rounds, ['round']);
+		this.createTableIfNotExists(tables.questions, ['id_question', 'id_player']);
+		this.createTableIfNotExists(tables.points, ['id_player', 'points', 'overtime']);
+		this.createTableIfNotExists(tables.overtime, ['data']);
+		this.createTableIfNotExists(tables.databaseVersion, ['version']);
+
+		this.dBase.insert(tables.databaseVersion, {version: this.version});
+		this.dBase.commit();
 	},
 
 	createTableIfNotExists: function(name, fields) {
@@ -96,7 +101,7 @@ const DB = {
 	},
 
 	update: function() {
-		if (!this.dBase.tableExists(this.DatabaseVersion)) {
+		if (!this.dBase.tableExists(tables.databaseVersion)) {
 			this.totalReset(false);
 		} else {
 			const currentVersion = this.getDBVersion();
@@ -107,7 +112,7 @@ const DB = {
 	},
 
 	getDBVersion: function () {
-		let version = this.dBase.queryAll(this.DatabaseVersion)[0].version;
+		let version = this.dBase.queryAll(tables.databaseVersion)[0].version;
 		if (version.match(/^\d\.\d$/)) {
 			version += '.0';
 		}
@@ -125,22 +130,22 @@ const DB = {
 					break;
 				default:
 			}
-			this.dBase.update(this.DatabaseVersion, null, (row) => { row.version = migrationVersion; return row; });
+			this.dBase.update(tables.databaseVersion, null, (row) => { row.version = migrationVersion; return row; });
 			this.dBase.commit();
 		});
 	},
 
 	migrateTo312: function() {
-		if (this.dBase.tableExists(this.Players) && !this.dBase.columnExists(this.Players, 'removed')) {
-			this.addColumns(this.Players, ['removed'], false);
+		if (this.dBase.tableExists(tables.players) && !this.dBase.columnExists(tables.players, 'removed')) {
+			this.addColumns(tables.players, ['removed'], false);
 		}
-		if (this.dBase.tableExists(this.Points) && this.dBase.columnExists(this.Points, 'cancelled')) {
-			const rows = this.dBase.queryAll(this.Points).map((row) => ({
+		if (this.dBase.tableExists(tables.points) && this.dBase.columnExists(tables.points, 'cancelled')) {
+			const rows = this.dBase.queryAll(tables.points).map((row) => ({
 				id_player: row.id_player,
 				points: row.points,
 				overtime: row.overtime || false,
 			}));
-			this.rebuildTable(this.Points, ['id_player', 'points', 'overtime'], rows);
+			this.rebuildTable(tables.points, ['id_player', 'points', 'overtime'], rows);
 		}
 		this.dBase.commit();
 	},
@@ -153,16 +158,16 @@ const DB = {
 	},
 
 	getSettings: function() {
-		return this.dBase.queryAll(this.Settings, {query: {ID: 1}})[0];
+		return this.dBase.queryAll(tables.settings, {query: {ID: 1}})[0];
 	},
 
 	createPlayer: function(name) {
-		this.dBase.insert(this.Players, {name: name, removed: false});
+		this.dBase.insert(tables.players, {name: name, removed: false});
 		this.dBase.commit();
 	},
 
 	markPlayerRemoved: function(playerId) {
-		this.dBase.update(this.Players, {ID: playerId}, (row) => {
+		this.dBase.update(tables.players, {ID: playerId}, (row) => {
 			row.removed = true;
 			return row;
 		});
@@ -187,7 +192,7 @@ const DB = {
 	},
 
 	clearRemovedFlags: function() {
-		this.dBase.update(this.Players, null, (row) => {
+		this.dBase.update(tables.players, null, (row) => {
 			row.removed = false;
 			return row;
 		});
@@ -195,37 +200,37 @@ const DB = {
 	},
 
 	removePlayer: function(playerId) {
-		this.dBase.deleteRows(this.Players, {ID: playerId});
+		this.dBase.deleteRows(tables.players, {ID: playerId});
 		this.dBase.commit();
 	},
 
 	removeAllPlayers: function() {
-		this.dBase.truncate(this.Players);
+		this.dBase.truncate(tables.players);
 		this.dBase.commit();
 	},
 
 	fetchPlayerByName: function(name) {
-		const results = this.dBase.queryAll(this.Players, {query: {name: name}});
+		const results = this.dBase.queryAll(tables.players, {query: {name: name}});
 		return results.length ? results[0] : null;
 	},
 
 	fetchPlayer: function(playerId) {
-		const results = this.dBase.queryAll(this.Players, {query: {ID: playerId}});
+		const results = this.dBase.queryAll(tables.players, {query: {ID: playerId}});
 		return results.length ? results[0] : null;
 	},
 
 	fetchAllPlayers: function() {
-		return this.dBase.queryAll(this.Players, {sort: [['order', 'ASC']]});
+		return this.dBase.queryAll(tables.players, {sort: [['order', 'ASC']]});
 	},
 
 	createGame: function(quizCode) {
 		this.purge(false);
 		this.clearRemovedFlags();
-		this.dBase.insert(this.Games, {game_code: quizCode, status: 'unfinished'});
-		const players = randomizeArray(this.dBase.queryAll(this.Players));
+		this.dBase.insert(tables.games, {game_code: quizCode, status: 'unfinished'});
+		const players = randomizeArray(this.dBase.queryAll(tables.players));
 		players.forEach((player, pos) => {
 			player.order = pos;
-			this.dBase.update(this.Players, {ID: player.ID}, (row) => {
+			this.dBase.update(tables.players, {ID: player.ID}, (row) => {
 				row.order = pos;
 				return row;
 			});
@@ -235,28 +240,28 @@ const DB = {
 	},
 
 	fetchUnfinishedGame: function() {
-		const result = this.dBase.queryAll(this.Games, {query: (row) => row.status != 'finished'});
+		const result = this.dBase.queryAll(tables.games, {query: (row) => row.status != 'finished'});
 		return (result.length) ? result.slice(-1)[0] : null;
 	},
 
 	startRound: function(round) {
-		this.dBase.insert(this.Rounds, {round: round});
+		this.dBase.insert(tables.rounds, {round: round});
 		this.dBase.commit();
 	},
 
 	fetchLastRound: function() {
-		return this.dBase.queryAll(this.Rounds, {sort: [['round', 'DESC']]})[0].round;
+		return this.dBase.queryAll(tables.rounds, {sort: [['round', 'DESC']]})[0].round;
 	},
 
 	useUpQuestion: function(question, player) {
-		this.dBase.insert(this.Questions, {id_question: question.id, id_player: player.ID});
+		this.dBase.insert(tables.questions, {id_question: question.id, id_player: player.ID});
 		this.dBase.commit();
 	},
 
 	restoreLastQuestion: function() {
 		const lastUsedQuestion = this.fetchLastQuestion();
 		if (lastUsedQuestion) {
-			this.dBase.deleteRows(this.Questions, {ID: lastUsedQuestion.ID});
+			this.dBase.deleteRows(tables.questions, {ID: lastUsedQuestion.ID});
 			this.dBase.commit();
 		}
 		return lastUsedQuestion ? lastUsedQuestion.id_question : null;
@@ -271,33 +276,33 @@ const DB = {
 	},
 
 	fetchUsedQuestions: function() {
-		const questions = this.dBase.queryAll(this.Questions);
+		const questions = this.dBase.queryAll(tables.questions);
 		return (questions.length) ? questions.map((question) => question.id_question) : null;
 	},
 
 	fetchLastQuestion: function() {
-		const questions = this.dBase.queryAll(this.Questions, {sort: [['ID', 'ASC']]});
+		const questions = this.dBase.queryAll(tables.questions, {sort: [['ID', 'ASC']]});
 		return (questions.length) ? questions.slice(-1)[0] : null;
 	},
 
 	addPoints: function(player, points, overtime = false) {
-		this.dBase.insert(this.Points, {id_player: player.ID, points: points.toString(), overtime: overtime});
+		this.dBase.insert(tables.points, {id_player: player.ID, points: points.toString(), overtime: overtime});
 		this.dBase.commit();
 	},
 
 	fetchAllPoints: function() {
-		return this.dBase.queryAll(this.Points);
+		return this.dBase.queryAll(tables.points);
 	},
 
 	fetchPlayerPoints: function(playerId, overtime = false) {
-		const points = this.dBase.queryAll(this.Points, {query: {id_player: playerId, overtime: overtime}});
+		const points = this.dBase.queryAll(tables.points, {query: {id_player: playerId, overtime: overtime}});
 		return points.reduce((sum, pointsEntry) => {
 			return sum + parseFloat(pointsEntry.points);
 		}, 0);
 	},
 
 	endQuiz: function() {
-		this.dBase.update(this.Games, {ID: 1}, (row) => {
+		this.dBase.update(tables.games, {ID: 1}, (row) => {
 			row.status = 'finished';
 			return row;
 		});
@@ -305,35 +310,34 @@ const DB = {
 	},
 
 	get canChangePoints() {
-		const quiz = this.dBase.queryAll(this.Games, {ID: 1});
+		const quiz = this.dBase.queryAll(tables.games, {ID: 1});
 		return quiz[0].status == 'unfinished';
 	},
 
-	startOvertime: function(overtime) {
-		this.dBase.update(this.Games, {ID: 1}, (row) => {
-			row.status = 'overtime';
+	setGameStatus: function(status) {
+		this.dBase.update(tables.games, {ID: 1}, (row) => {
+			row.status = status;
 			return row;
 		});
 		this.dBase.commit();
-		this.saveOvertime(overtime);
 	},
 
-	saveOvertime: function(overtime) {
-		this.dBase.insertOrUpdate(this.Overtime, {ID: 1}, {data: overtime.stringify()});
+	saveOvertimeData: function(data) {
+		this.dBase.insertOrUpdate(tables.overtime, {ID: 1}, {data});
 		this.dBase.commit();
 	},
 
-	fetchOvertime: function() {
-		const results = this.dBase.queryAll(this.Overtime);
-		return (results.length) ? Overtime.initFromJSON(results.slice(-1)[0].data) : null;
+	fetchOvertimeData: function() {
+		const results = this.dBase.queryAll(tables.overtime);
+		return results.length ? results.at(-1).data : null;
 	},
 
 	purge: function(reload = true) {
-		this.dBase.truncate(this.Games);
-		this.dBase.truncate(this.Rounds);
-		this.dBase.truncate(this.Questions);
-		this.dBase.truncate(this.Points);
-		this.dBase.truncate(this.Overtime);
+		this.dBase.truncate(tables.games);
+		this.dBase.truncate(tables.rounds);
+		this.dBase.truncate(tables.questions);
+		this.dBase.truncate(tables.points);
+		this.dBase.truncate(tables.overtime);
 		this.dBase.commit();
 		if (reload) {
 			window.location.reload();
@@ -353,9 +357,7 @@ const DB = {
 
 DB.update();
 
-const db = DB.dBase;
-
-const Admin = {
+export const Admin = {
 
 	purge: () => {
 		DB.purge();

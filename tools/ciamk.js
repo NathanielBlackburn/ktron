@@ -1,8 +1,8 @@
-const CIAMK_VERSION = '1.3.0';
+const CIAMK_VERSION = '1.3.1';
 
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
-import * as path from "node:path";
+import * as path from 'node:path';
 import * as readline from 'node:readline/promises';
 // import { EOL } from "node:os";
 // const SEP = path.sep;
@@ -41,37 +41,45 @@ const printLogs = (logs) => {
     }
 };
 
-const addCodeToQuizFiles = async (code) => {
-    const quizFilesPath = './js/quizFiles.js';
-    let codes;
-    if (fs.existsSync(quizFilesPath)) {
-        const quizFiles = fs.readFileSync(quizFilesPath).toString();
-        const matches = quizFiles.match(/.+(\[.+\])/);
-        if (matches) {
-            codes = JSON.parse(matches[1]);
-        } else {
-            codes = [];
-        }
-        if (!codes.includes(code)) {
-            codes.push(code);
-        }
-    } else {
-        codes = [code];
+const QUIZ_FILES_PATH = './js/quizFiles.js';
+
+const readQuizFileCodes = () => {
+    if (!fs.existsSync(QUIZ_FILES_PATH)) {
+        return null;
     }
-    const quizFilesContent = `const ktronQuizFiles = ${JSON.stringify(codes)};`;
-    fs.writeFileSync(quizFilesPath, quizFilesContent);
+    const quizFiles = fs.readFileSync(QUIZ_FILES_PATH, 'utf8');
+    const windowAssign = quizFiles.match(/window\.ktronQuizFiles\s*=\s*(\[[\s\S]*?\])\s*;/);
+    if (windowAssign) {
+        return JSON.parse(windowAssign[1]);
+    }
+    const matches = quizFiles.match(/(?:export\s+)?const\s+ktronQuizFiles\s*=\s*(\[[\s\S]*?\])\s*;/);
+    if (matches) {
+        return JSON.parse(matches[1]);
+    }
+    const legacy = quizFiles.match(/\[[\s\S]*\]/);
+    return legacy ? JSON.parse(legacy[0]) : [];
+};
+
+const writeQuizFiles = (codes) => {
+    fs.writeFileSync(QUIZ_FILES_PATH, `window.ktronQuizFiles = ${JSON.stringify(codes)};\n`);
+};
+
+const addCodeToQuizFiles = async (code) => {
+    let codes = readQuizFileCodes() ?? [];
+    if (!codes.includes(code)) {
+        codes.push(code);
+    }
+    writeQuizFiles(codes);
 };
 
 const removeCodeFromQuizFiles = async (rl) => {
     const logs = [];
-    const quizFilesPath = './js/quizFiles.js';
-    if (fs.existsSync(quizFilesPath)) {
-        const quizFiles = fs.readFileSync(quizFilesPath).toString();
-        const matches = quizFiles.match(/.+(\[.+\])/);
-        if (!matches) {
+    if (fs.existsSync(QUIZ_FILES_PATH)) {
+        const parsed = readQuizFileCodes();
+        if (!parsed?.length) {
             logs.push({ log: '\nLista konkursów jest pusta.', type: 'error' });
         } else {
-            let codes = JSON.parse(matches[1]);
+            let codes = parsed;
             console.warn('\nUsuwanie quizu z aplikacji');
             codes.forEach((code, index) => {
                 console.log(`${index + 1} - ${code}`);
@@ -90,9 +98,10 @@ const removeCodeFromQuizFiles = async (rl) => {
             } else {
                 const code = codes[parseInt(choice) - 1];
                 codes = codes.filter((existingCode) => existingCode != code);
-                const quizFilesContent = `const ktronQuizFiles = ${JSON.stringify(codes)};`;
-                fs.writeFileSync(quizFilesPath, quizFilesContent);
+                writeQuizFiles(codes);
                 logs.push({ log: `\nUsunięto: ${code}`, type: 'warn' });
+                printLogs(logs);
+                return;
             }
         }
     } else {
@@ -103,6 +112,7 @@ const removeCodeFromQuizFiles = async (rl) => {
 
 const migrateOldQuizes = async (rl) => {
     const logs = [];
+    let migrated = false;
     const pathName = './pytania/js';
     if (fs.existsSync(pathName)) {
         const files = fs.readdirSync(pathName, { withFileTypes: true });
@@ -116,6 +126,7 @@ const migrateOldQuizes = async (rl) => {
                     if (fs.existsSync(`./pytania/${code}`)) {
                         fs.cpSync(filePath, `./pytania/${code}/${code}.js`);
                         await addCodeToQuizFiles(code);
+                        migrated = true;
                         logs.push({ log: `Zmigrowano: ${code}`, type: 'warn' });
                     } else {
                         logs.push({ log: `Znaleziono konkurs o kodzie ${code}, ale w katalogu "pytania" brak folderu ${code}`, type: 'error' });
@@ -386,6 +397,8 @@ KTron.quizzes.push(${jsonString});
                             fs.writeFileSync(`./pytania/${code}/${code}.js`, fileContents);
                             await addCodeToQuizFiles(code);
                             logs.push(`\nKonkurs ${code} poprawnie dodany`);
+                            printLogs(logs);
+                            return;
                         } else {
                             logs = logs.concat(verificationResult.errors);
                             logs = logs.concat(verificationResult.warnings);

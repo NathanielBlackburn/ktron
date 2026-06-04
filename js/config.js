@@ -1,15 +1,16 @@
-const KTron = {
+export const KTron = {
 	config: {
-		quizFiles: ktronQuizFiles,
+		quizFiles: [],
 		debugMode: false,
-		dontRandomize: true,
+		dontRandomize: false
 	},
 	quizzes: [],
+	quizzesReady: false,
 	scriptsToLoad: 0,
 	scriptsLoaded: 0
 };
 
-const UI = {
+export const UI = {
 	defaults: {
 		LOGO_IMAGE: 'colorado',
 		VICTORY_IMAGE: 'victory_image_default',
