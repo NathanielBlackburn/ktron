@@ -1,57 +1,50 @@
-import './setupGlobals.js';
+import './core/setupGlobals.js';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.min.css';
 import 'viewerjs/dist/viewer.css';
 import '../css/main.css';
 
-import { KTron, UI } from './config.js';
-import { DB, Admin } from './db.js';
-import { I18n, changeLanguage } from './i18n.js';
-import { Quiz } from './quiz.js';
-import {
-	Page,
-	lightSwitch,
-	togglePointsModal,
-	playerAddShow,
-	playerRemove,
-	playersPurge,
-	playerAdd,
-	settingsToggle,
-	changeLogo,
-	changePointsManually,
-} from './common.js';
-import {
-	startQuiz,
-	questionAnswered,
-	answeredIncorrectly,
-	answeredCorrectly,
-	endQuiz,
-	removePlayerFromGame,
-} from './quiz.js';
+import { Loader } from './core/config.js';
+import { View } from './ui/ui.js';
+import { Admin } from './app/admin.js';
+import { I18n } from './core/i18n.js';
+import { App } from './app/app.js';
+import { Game } from './app/game.js';
 
-Object.assign(window, {
-	KTron,
-	UI,
-	DB,
+const publicMethods = (obj, names) =>
+	Object.fromEntries(names.map((name) => [name, obj[name].bind(obj)]));
+
+window.KTron = {
+	Loader,
+	View: publicMethods(View, [
+		'lightSwitch',
+		'togglePointsModal',
+		'openToolsPanel',
+		'showQuizPanel',
+		'playerAddShow',
+		'settingsToggle',
+		'changeLogo',
+	]),
+	Game: publicMethods(Game, [
+		'startQuiz',
+		'questionAnswered',
+		'answeredIncorrectly',
+		'answeredCorrectly',
+		'endQuiz',
+		'removePlayerFromGame',
+	]),
+	App: publicMethods(App, [
+		'playerAdd',
+		'playerRemove',
+		'playersPurge',
+		'changePointsManually',
+	]),
+	I18n: publicMethods(I18n, ['changeLanguage']),
 	Admin,
-	I18n,
-	Quiz,
-	Page,
-	lightSwitch,
-	togglePointsModal,
-	startQuiz,
-	questionAnswered,
-	answeredIncorrectly,
-	answeredCorrectly,
-	endQuiz,
-	playerAddShow,
-	playerRemove,
-	playersPurge,
-	playerAdd,
-	settingsToggle,
-	changeLanguage,
-	changeLogo,
-	changePointsManually,
-	removePlayerFromGame,
+};
+
+Object.defineProperty(window.KTron, 'quizzes', {
+	get: () => Loader.quizzes,
+	enumerable: true,
 });

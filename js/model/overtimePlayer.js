@@ -3,17 +3,20 @@ import { Player } from './player.js';
 export class OvertimePlayer extends Player {
 
 	constructor(player, status = 'pending') {
-		super(player.ID, player.name, player.order);
+		const base = player instanceof Player
+			? player
+			: Player.fromRow(player);
+		super(base.ID, base.name, base.order, base.isRemoved);
 		this.status = status;
 	}
 
-	stringify() {
-		return JSON.stringify({player: super.stringify(), status: this.status});
+	serialize() {
+		return JSON.stringify({player: super.serialize(), status: this.status});
 	}
 
-	static initFromJSON(json) {
-		const obj = JSON.parse(json);
-		return new OvertimePlayer(Player.initFromJSON(obj.player), obj.status);
+	static hydrate(json) {
+		const obj = typeof json === 'string' ? JSON.parse(json) : json;
+		return new OvertimePlayer(Player.hydrate(obj.player), obj.status);
 	}
 
 	equals(overtimePlayer) {

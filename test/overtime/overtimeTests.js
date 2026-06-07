@@ -1,12 +1,9 @@
 import { mock } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { mockDB } from '../mocks/mockDB.js';
-import { mockAdmin } from '../mocks/mockAdmin.js';
-
-mock.module(fileURLToPath(new URL('../../js/db.js', import.meta.url)), {
+mock.module(fileURLToPath(new URL('../../js/core/db.js', import.meta.url)), {
 	namedExports: {
 		DB: mockDB,
-		Admin: mockAdmin,
 	},
 });
 

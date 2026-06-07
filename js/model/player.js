@@ -4,15 +4,27 @@ export class Player {
 		this.ID = id;
 		this.name = name;
 		this.order = order;
-		this.removed = removed;
+		this.removed = !!removed;
 	}
 
-	stringify() {
+	static fromRow(row) {
+		return new Player(row.ID, row.name, row.order, row.removed);
+	}
+
+	get isRemoved() {
+		return this.removed;
+	}
+
+	get isActive() {
+		return !this.isRemoved;
+	}
+
+	serialize() {
 		return JSON.stringify({ID: this.ID, name: this.name, order: this.order, removed: this.removed});
 	}
 
-	static initFromJSON(json) {
-		const obj = JSON.parse(json);
+	static hydrate(json) {
+		const obj = typeof json === 'string' ? JSON.parse(json) : json;
 		return new Player(obj.ID, obj.name, obj.order, !!obj.removed);
 	}
 
@@ -20,6 +32,6 @@ export class Player {
 		return this.ID === player.ID
 			&& this.name === player.name
 			&& this.order === player.order
-			&& !!this.removed === !!player.removed;
+			&& this.isRemoved === player.isRemoved;
 	}
 }

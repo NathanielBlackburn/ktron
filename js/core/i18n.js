@@ -1,7 +1,7 @@
-import pl from '../locales/pl.js';
-import en from '../locales/en.js';
-import szl from '../locales/szl.js';
-import { settings } from './model/settings.js';
+import pl from '../../locales/pl.js';
+import en from '../../locales/en.js';
+import szl from '../../locales/szl.js';
+import { settings } from '../model/settings.js';
 
 const I18N_LOCALES = { pl, en, szl };
 
@@ -59,14 +59,14 @@ export const I18n = {
 		if (languageList) {
 			languageList.value = this.locale;
 		}
-	}
-};
+	},
 
-export const changeLanguage = (target) => {
-	const language = target.value;
-	if (language === I18n.locale) {
-		return;
-	}
-	settings.language = language;
-	location.reload();
+	changeLanguage(target) {
+		const language = target.value;
+		if (language === this.locale) {
+			return;
+		}
+		settings.language = language;
+		location.reload();
+	},
 };

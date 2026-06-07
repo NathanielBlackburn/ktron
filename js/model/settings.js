@@ -1,4 +1,4 @@
-import { UI } from '../config.js';
+import { Assets } from '../core/assets.js';
 
 export class Settings {
 
@@ -31,7 +31,7 @@ export class Settings {
 			this.showQuestionAudioOnAnswer = false;
 		}
 		if (typeof this.storage['logo'] === 'undefined') {
-			this.logo = UI.defaults.LOGO_IMAGE;
+			this.logo = Assets.defaults.LOGO_IMAGE;
 		}
 		if (typeof this.storage['language'] === 'undefined') {
 			this.language = 'pl';
@@ -127,6 +127,25 @@ export class Settings {
 	set language(value) {
 		this.writeToStorage('language', value);
 	}
+
+	get selectedQuizCode() {
+		return this.storage.selectedQuizCode;
+	}
+
+	set selectedQuizCode(value) {
+		this.writeToStorage('selectedQuizCode', value);
+	}
 }
 
 export const settings = new Settings();
+
+export const resolveSelectedQuiz = (quizzes) => {
+	const stored = settings.selectedQuizCode;
+	if (stored) {
+		const found = quizzes.find((quiz) => quiz.code == stored);
+		if (found) {
+			return found;
+		}
+	}
+	return quizzes[0];
+};

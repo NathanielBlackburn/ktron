@@ -1,4 +1,4 @@
-import { DB } from '../db.js';
+import { DB } from '../core/db.js';
 import { Overtime } from './overtime.js';
 
 export const OvertimeRepository = {

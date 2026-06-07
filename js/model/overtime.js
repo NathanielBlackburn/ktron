@@ -1,4 +1,5 @@
-import { DB } from '../db.js';
+import { DB } from '../core/db.js';
+import { Player } from './player.js';
 import { OvertimePlayer } from './overtimePlayer.js';
 
 export class Overtime {
@@ -12,19 +13,20 @@ export class Overtime {
 
 	static toOvertimePlayers(players) {
 		return (players || [])
-			.filter((player) => !Overtime.isPlayerRemoved(player))
-			.map((player) => (player instanceof OvertimePlayer)
-				? player
-				: new OvertimePlayer(player));
-	}
-
-	static isPlayerRemoved(player) {
-		const id = player.ID ?? player.player?.ID;
-		return id ? DB.isPlayerRemoved(id) : false;
+			.filter((player) => player.isActive ?? true)
+			.map((player) => {
+				if (player instanceof OvertimePlayer) {
+					return player;
+				}
+				const base = player instanceof Player
+					? player
+					: Player.fromRow({ ID: player.ID, name: player.name, order: player.order ?? 0, removed: false });
+				return new OvertimePlayer(base);
+			});
 	}
 
 	static activeInPlace(place) {
-		return place.filter((player) => !Overtime.isPlayerRemoved(player));
+		return place.filter((player) => player.isActive);
 	}
 
 	countActivePlayers() {
@@ -41,20 +43,20 @@ export class Overtime {
 
 	serialize() {
 		return JSON.stringify({
-			firstPlace: this.firstPlace.map((player) => player.stringify()),
-			secondPlace: this.secondPlace.map((player) => player.stringify()),
-			thirdPlace: this.thirdPlace.map((player) => player.stringify())
+			firstPlace: this.firstPlace.map((player) => player.serialize()),
+			secondPlace: this.secondPlace.map((player) => player.serialize()),
+			thirdPlace: this.thirdPlace.map((player) => player.serialize())
 		});
 	}
 
 	findNextPlayer() {
-		return this.findPlayer((player) => player.status == 'pending' && !DB.isPlayerRemoved(player.ID));
+		return this.findPlayer((player) => player.status == 'pending' && player.isActive);
 	}
 
 	get playersToBeAsked() {
-		return this.firstPlace.filter((player) => player.status !== 'finished' && !DB.isPlayerRemoved(player.ID))
-			.concat(this.secondPlace.filter((player) => player.status !== 'finished' && !DB.isPlayerRemoved(player.ID)))
-			.concat(this.thirdPlace.filter((player) => player.status !== 'finished' && !DB.isPlayerRemoved(player.ID)));
+		return this.firstPlace.filter((player) => player.status !== 'finished' && player.isActive)
+			.concat(this.secondPlace.filter((player) => player.status !== 'finished' && player.isActive))
+			.concat(this.thirdPlace.filter((player) => player.status !== 'finished' && player.isActive));
 	}
 
 	markAnswer(playerId, status) {
@@ -170,9 +172,9 @@ export class Overtime {
 		const obj = typeof json === 'string' ? JSON.parse(json) : json;
 		return new Overtime(
 			[
-				obj.firstPlace.map((jsonPlayer) => OvertimePlayer.initFromJSON(jsonPlayer)),
-				obj.secondPlace.map((jsonPlayer) => OvertimePlayer.initFromJSON(jsonPlayer)),
-				obj.thirdPlace.map((jsonPlayer) => OvertimePlayer.initFromJSON(jsonPlayer)),
+				obj.firstPlace.map((jsonPlayer) => OvertimePlayer.hydrate(jsonPlayer)),
+				obj.secondPlace.map((jsonPlayer) => OvertimePlayer.hydrate(jsonPlayer)),
+				obj.thirdPlace.map((jsonPlayer) => OvertimePlayer.hydrate(jsonPlayer)),
 			]
 		);
 	}

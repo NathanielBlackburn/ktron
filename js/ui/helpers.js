@@ -1,12 +1,12 @@
-import './setupGlobals.js';
-import { I18n } from './i18n.js';
+import '../core/setupGlobals.js';
+import { I18n } from '../core/i18n.js';
 
 export const error = (msg, title) => {
 	if (typeof title === 'undefined') {
 		title = I18n.t('modal.error.title');
 	}
-	$('#error-modal-title').empty().html(title);
-	$('#error-modal-content').empty().html(msg);
+	jQuery('#error-modal-title').empty().html(title);
+	jQuery('#error-modal-content').empty().html(msg);
 	const myModal = new bootstrap.Modal('#error-message');
 	myModal.toggle();
 };
@@ -16,21 +16,21 @@ export const formatOvertimePoints = (points) => {
 };
 
 export const showToast = (text, type = 'info') => {
-	const toast = $('#quiz-toast').get(0);
-	$('#quiz-toast div.toast-body').text(text);
-	$('#quiz-toast div.toast-icon').removeClass(['toast-icon-info', 'toast-icon-warning', 'toast-icon-error']);
+	const toast = jQuery('#quiz-toast').get(0);
+	jQuery('#quiz-toast div.toast-body').text(text);
+	jQuery('#quiz-toast div.toast-icon').removeClass(['toast-icon-info', 'toast-icon-warning', 'toast-icon-error']);
 	switch (type) {
 		case 'warning':
-			$('#quiz-toast div.toast-icon').addClass('toast-icon-warning');
-			$('#quiz-toast strong.toast-title').text(I18n.t('toast.warning'));
+			jQuery('#quiz-toast div.toast-icon').addClass('toast-icon-warning');
+			jQuery('#quiz-toast strong.toast-title').text(I18n.t('toast.warning'));
 			break;
 		case 'error':
-			$('#quiz-toast div.toast-icon').addClass('toast-icon-error');
-			$('#quiz-toast strong.toast-title').text(I18n.t('toast.error'));
+			jQuery('#quiz-toast div.toast-icon').addClass('toast-icon-error');
+			jQuery('#quiz-toast strong.toast-title').text(I18n.t('toast.error'));
 			break;
 		default:
-			$('#quiz-toast div.toast-icon').addClass('toast-icon-info');
-			$('#quiz-toast strong.toast-title').text(I18n.t('toast.info'));
+			jQuery('#quiz-toast div.toast-icon').addClass('toast-icon-info');
+			jQuery('#quiz-toast strong.toast-title').text(I18n.t('toast.info'));
 	}
 	const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toast);
 	toastBootstrap.show();

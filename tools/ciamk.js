@@ -391,8 +391,8 @@ const importNewQuiz = async (rl) => {
                                 json.title = (await rl.question('Tytuł konkursu? > ')).trim();
                             }
                             const jsonString = JSON.stringify(json, null, 2);
-                            const fileContents = `if (typeof KTron != 'undefined' && typeof KTron['quizzes'] != 'undefined') {
-KTron.quizzes.push(${jsonString});
+                            const fileContents = `if (typeof KTron != 'undefined' && KTron.Loader && KTron.Loader.quizzes) {
+KTron.Loader.quizzes.push(${jsonString});
 }\n`;
                             fs.writeFileSync(`./pytania/${code}/${code}.js`, fileContents);
                             await addCodeToQuizFiles(code);
