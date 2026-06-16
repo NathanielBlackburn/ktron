@@ -17,6 +17,26 @@ const getMainCarousel = () => {
 	return bootstrap.Carousel.getOrCreateInstance(el, { interval: false });
 };
 
+const comparePointsModalRows = (a, b) => {
+	const removedA = a.classList.contains('player-removed');
+	const removedB = b.classList.contains('player-removed');
+	if (removedA !== removedB) {
+		return removedA ? 1 : -1;
+	}
+	const pointsA = +a.querySelector('span[data-role="points"]').textContent;
+	const pointsB = +b.querySelector('span[data-role="points"]').textContent;
+	const overtimeA = +a.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
+	const overtimeB = +b.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
+	if (pointsA == pointsB) {
+		return overtimeB - overtimeA;
+	}
+	return pointsB - pointsA;
+};
+
+const canRemovePlayersFromGame = () => {
+	return QuizEngine.gameInProgress && !QuizEngine.overtime && DB.canChangePoints;
+};
+
 export const View = {
 	toolsPanelIndex: 1,
 
@@ -120,7 +140,7 @@ export const View = {
 		const tbody = jQuery('#points-modal-tbody');
 		jQuery(tbody).empty();
 		players.forEach((player) => {
-			const removeButton = QuizEngine.gameInProgress && player.isActive
+			const removeButton = canRemovePlayersFromGame() && player.isActive
 				? `<button type="button" class="btn btn-tiny btn-outline-secondary ms-1" data-role="remove-player" onclick="KTron.Game.removePlayerFromGame(${player.ID})" aria-label="${I18n.t('player.removeAria')}">×</button>`
 				: '';
 			let currentStats = tbody.html();
@@ -151,7 +171,7 @@ export const View = {
 		if (!DB.canChangePoints) {
 			jQuery('button[data-role="points-change"]').hide();
 		}
-		if (QuizEngine.gameInProgress) {
+		if (canRemovePlayersFromGame()) {
 			jQuery('#points-modal button[data-role="remove-player"]').show();
 		} else {
 			jQuery('#points-modal button[data-role="remove-player"]').hide();
@@ -175,7 +195,8 @@ export const View = {
 			const overtimeSpan = row.querySelector('span[data-role="overtime"]');
 			overtimeSpan.textContent = player.isRemoved ? '' : formatOvertimePoints(player.overtimePoints);
 			row.querySelectorAll('[data-role="remove-player"], [data-role="points-change"]').forEach((el) => {
-				el.style.display = player.isRemoved ? 'none' : '';
+				const canChange = !player.isRemoved && (el.dataset.role !== 'remove-player' || canRemovePlayersFromGame());
+				el.style.display = canChange ? '' : 'none';
 			});
 		});
 		if (sort) {
@@ -190,16 +211,7 @@ export const View = {
 			first.set(el, el.getBoundingClientRect());
 		});
 
-		const rows = [...tbody.children].sort((a, b) => {
-			const pointsA = +a.querySelector('span[data-role="points"]').textContent;
-			const pointsB = +b.querySelector('span[data-role="points"]').textContent;
-			const overtimeA = +a.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
-			const overtimeB = +b.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
-			if (pointsA == pointsB) {
-				return overtimeB - overtimeA;
-			}
-			return pointsB - pointsA;
-		});
+		const rows = [...tbody.children].sort(comparePointsModalRows);
 		rows.forEach((r) => tbody.appendChild(r));
 		[...tbody.children].forEach((el, index) => {
 			el.querySelector('td[data-role="lp"]').textContent = index + 1;
@@ -224,16 +236,7 @@ export const View = {
 
 	reorderWithNoAnimation() {
 		const tbody = document.getElementById('points-modal-tbody');
-		const rows = [...tbody.children].sort((a, b) => {
-			const pointsA = +a.querySelector('span[data-role="points"]').textContent;
-			const pointsB = +b.querySelector('span[data-role="points"]').textContent;
-			const overtimeA = +a.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
-			const overtimeB = +b.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
-			if (pointsA == pointsB) {
-				return overtimeB - overtimeA;
-			}
-			return pointsB - pointsA;
-		});
+		const rows = [...tbody.children].sort(comparePointsModalRows);
 		rows.forEach((r) => tbody.appendChild(r));
 		[...tbody.children].forEach((el, index) => {
 			el.querySelector('td[data-role="lp"]').textContent = index + 1;
@@ -255,6 +258,65 @@ export const View = {
 			jQuery('#cinema-light i').removeClass('bi-lightbulb-off-fill').addClass('bi-lightbulb-fill');
 			jQuery('#cinema-light').removeClass('btn-light').addClass('btn-dark');
 		}
+	},
+
+	showThemedRoundAnnouncement({ round, category, cover }) {
+		const container = document.getElementById('themed-round-announcement');
+		const overlay = document.getElementById('themed-round-announcement-overlay');
+		const content = document.getElementById('themed-round-announcement-content');
+		const text = document.getElementById('themed-round-announcement-text');
+		const coverImg = document.getElementById('themed-round-announcement-cover');
+		if (!container || !overlay || !content || !text) {
+			return;
+		}
+		text.innerHTML = renderTags(I18n.t('toast.themedRound', { category }));
+		content.classList.toggle('has-cover', Boolean(cover));
+		if (coverImg) {
+			if (cover) {
+				coverImg.src = `pytania/${QuizEngine.code}/${cover}`;
+				coverImg.alt = category;
+				coverImg.classList.remove('hidden');
+			} else {
+				coverImg.removeAttribute('src');
+				coverImg.removeAttribute('alt');
+				coverImg.classList.add('hidden');
+			}
+		}
+		const dismiss = () => {
+			gsap.killTweensOf([overlay, content]);
+			gsap.to([overlay, content], {
+				opacity: 0,
+				duration: 0.3,
+				ease: 'power1.in',
+				onComplete: () => {
+					container.classList.add('hidden');
+					container.setAttribute('aria-hidden', 'true');
+					content.classList.remove('has-cover');
+					gsap.set([overlay, content], { clearProps: 'all' });
+					if (coverImg) {
+						coverImg.removeAttribute('src');
+						coverImg.removeAttribute('alt');
+						coverImg.classList.add('hidden');
+					}
+				},
+			});
+		};
+		if (container._themedRoundDismiss) {
+			container.removeEventListener('click', container._themedRoundDismiss);
+		}
+		container._themedRoundDismiss = dismiss;
+		container.classList.remove('hidden');
+		container.setAttribute('aria-hidden', 'false');
+		gsap.killTweensOf([overlay, content]);
+		gsap.set(overlay, { opacity: 0 });
+		gsap.set(content, { scale: 0, opacity: 1 });
+		gsap.timeline({
+			onComplete: () => {
+				container.addEventListener('click', dismiss, { once: true });
+			},
+		})
+			.to(overlay, { opacity: 1, duration: 0.3, ease: 'power1.out' })
+			.to(content, { scale: 1, duration: 0.3, ease: 'back.out(1.7)' }, 0);
 	},
 
 	setupSettings() {
@@ -443,7 +505,7 @@ export const View = {
 		jQuery('#question-text').html(renderTags(question.questionText));
 		View.showEl('#question-text');
 		if (typeof question.category !== 'undefined' && question.category.length) {
-			jQuery('#cat-text').html(I18n.t('category.prefix') + ' ' + question.category);
+			jQuery('#cat-text').html(renderTags(`${I18n.t('category.prefix')} [blue]${question.category}[/blue]`));
 			View.showEl('#cat-text');
 		}
 		View.createImageContainer(question, false);

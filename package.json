@@ -7,7 +7,7 @@
     "build": "vite build && node scripts/postbuild.js",
     "preview": "vite preview",
     "ciamk": "node tools/ciamk.js",
-    "test": "node --experimental-test-module-mocks test/overtime/overtimeTests.js"
+    "test": "node --experimental-test-module-mocks test/overtime/overtimeTests.js && node --experimental-test-module-mocks test/quiz/themedRoundsTests.js"
   },
   "devDependencies": {
     "vite": "^6.3.5"

@@ -28,5 +28,8 @@ export const renderTags = (text) => {
 	const escaped = escapeHTML(text);
 	return escaped
 		.replace(/\[br\]/g, '<br>')
-		.replace(/\[blue\](.*?)\[\/blue\]/g, '<span class="blue">$1</span>');
+		.replace(/\[b\](.*?)\[\/b\]/g, '<b>$1</b>')
+		.replace(/\[i\](.*?)\[\/i\]/g, '<i>$1</i>')
+		.replace(/\[blue\](.*?)\[\/blue\]/g, '<span class="blue">$1</span>')
+		.replace(/\[reverse\](.*?)\[\/reverse\]/g, '<p class="reverse">$1</p>');
 };

@@ -3,6 +3,7 @@ const CIAMK_VERSION = '1.3.1';
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline/promises';
 // import { EOL } from "node:os";
 // const SEP = path.sep;
@@ -167,7 +168,26 @@ const normaliseFileName = (filePath) => {
     return newPath;
 };
 
-const verifyMedia = async (code, questions) => {
+const verifyCategoryCovers = (code, themedRounds) => {
+    const errors = [];
+    const foundFiles = [];
+    const covers = [...new Set(
+        (themedRounds || [])
+            .map((themedRound) => themedRound.cover)
+            .filter(Boolean),
+    )];
+    covers.forEach((cover) => {
+        const filePath = path.join(`./pytania/${code}`, cover);
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+            errors.push(`Brak pliku okładki kategorii: ${cover}`);
+            return;
+        }
+        foundFiles.push(path.basename(filePath));
+    });
+    return { errors, foundFiles };
+};
+
+const verifyMedia = async (code, questions, themedRounds = []) => {
     const pathName = `./pytania/${code}`;
     let errors = [];
     let warnings = [];
@@ -213,6 +233,9 @@ const verifyMedia = async (code, questions) => {
             }
         }
     });
+    const coverVerification = verifyCategoryCovers(code, themedRounds);
+    errors = errors.concat(coverVerification.errors);
+    foundFiles = foundFiles.concat(coverVerification.foundFiles);
     let allFiles = fs.readdirSync(pathName, { withFileTypes: true });
     allFiles = allFiles.filter((file) => {
         return !foundFiles.includes(file.name)
@@ -291,6 +314,140 @@ const choicesAreSeparatedByWhitespace = (text) => {
   }
 
   return true;
+};
+
+const THEMED_ROUND_MIN_QUESTIONS = 10;
+
+const parseThemedRoundToken = (token, errors) => {
+    const trimmed = token.trim();
+    if (!trimmed) {
+        return null;
+    }
+    const colonIndex = trimmed.indexOf(':');
+    if (colonIndex === -1) {
+        errors.push(`Niepoprawny wpis rundy tematycznej: "${trimmed}" (oczekiwany format: numer:nazwa).`);
+        return null;
+    }
+    const roundPart = trimmed.slice(0, colonIndex).trim();
+    const name = trimmed.slice(colonIndex + 1).trim();
+    const round = Number.parseInt(roundPart, 10);
+    if (!Number.isInteger(round) || round < 1) {
+        errors.push(`Niepoprawny numer rundy tematycznej: "${roundPart}" (musi być dodatnią liczbą całkowitą).`);
+        return null;
+    }
+    if (!name) {
+        errors.push(`Brak nazwy w wpisie rundy tematycznej: "${trimmed}".`);
+        return null;
+    }
+    return { round, name };
+};
+
+/**
+ * themedRound token is `round:name` (display/internal name).
+ * Question pool category is taken from the marked row's `category` column.
+ */
+export const parseThemedRoundsFromRecords = (records) => {
+    const errors = [];
+    const themedRounds = [];
+    const seenRounds = new Set();
+    records.forEach((rec) => {
+        if (typeof rec.themedRound === 'undefined' || !rec.themedRound.trim()) {
+            return;
+        }
+        const category = typeof rec.category !== 'undefined' ? rec.category.trim() : '';
+        if (!category) {
+            errors.push(`Wpis themedRound "${rec.themedRound.trim()}" wymaga kategorii w tym samym wierszu.`);
+            return;
+        }
+        rec.themedRound.split(';').forEach((token) => {
+            const parsed = parseThemedRoundToken(token, errors);
+            if (!parsed) {
+                return;
+            }
+            if (seenRounds.has(parsed.round)) {
+                errors.push(`Powtórzony numer rundy tematycznej: ${parsed.round}.`);
+                return;
+            }
+            seenRounds.add(parsed.round);
+            themedRounds.push({
+                round: parsed.round,
+                name: parsed.name,
+                category,
+            });
+        });
+    });
+    themedRounds.sort((a, b) => a.round - b.round);
+    return { themedRounds, errors };
+};
+
+/**
+ * First non-empty categoryCover per category wins.
+ * Covers without a category are reported as errors.
+ */
+export const parseCategoryCoversFromRecords = (records) => {
+    const errors = [];
+    const categoryCovers = {};
+    records.forEach((rec) => {
+        if (typeof rec.categoryCover === 'undefined' || !rec.categoryCover.trim()) {
+            return;
+        }
+        const cover = rec.categoryCover.trim();
+        const category = typeof rec.category !== 'undefined' ? rec.category.trim() : '';
+        if (!category) {
+            errors.push(`Wpis categoryCover "${cover}" bez kategorii.`);
+            return;
+        }
+        if (typeof categoryCovers[category] === 'undefined') {
+            categoryCovers[category] = cover;
+        }
+    });
+    return { categoryCovers, errors };
+};
+
+export const applyCategoryCoversToThemedRounds = (themedRounds, categoryCovers) => {
+    return themedRounds.map((themedRound) => {
+        const cover = categoryCovers[themedRound.category];
+        if (!cover) {
+            return themedRound;
+        }
+        return { ...themedRound, cover };
+    });
+};
+
+export const validateThemedRounds = (themedRounds, questions) => {
+    const errors = [];
+    if (!themedRounds.length) {
+        return errors;
+    }
+    const categoryCounts = {};
+    questions.forEach((question) => {
+        if (question.category) {
+            categoryCounts[question.category] = (categoryCounts[question.category] || 0) + 1;
+        }
+    });
+    const themedRoundCountByCategory = {};
+    themedRounds.forEach((themedRound) => {
+        themedRoundCountByCategory[themedRound.category] = (themedRoundCountByCategory[themedRound.category] || 0) + 1;
+    });
+    themedRounds.forEach((themedRound) => {
+        const questionCount = categoryCounts[themedRound.category] || 0;
+        if (questionCount === 0) {
+            errors.push(
+                `Runda tematyczna ${themedRound.round} ("${themedRound.name}"): brak pytań w kategorii "${themedRound.category}".`
+            );
+        }
+    });
+    Object.entries(themedRoundCountByCategory).forEach(([category, themedRoundCount]) => {
+        const questionCount = categoryCounts[category] || 0;
+        const minRequired = themedRoundCount * THEMED_ROUND_MIN_QUESTIONS;
+        if (questionCount < minRequired) {
+            errors.push(
+                `Kategoria "${category}" ma ${questionCount} pytań, a wymagane jest co najmniej ${minRequired} `
+                + `(${themedRoundCount} ${themedRoundCount === 1 ? 'runda tematyczna' : 'rundy tematyczne'} × ${THEMED_ROUND_MIN_QUESTIONS}).`
+            );
+        }
+    });
+    return errors;
 };
 
 const transformMultipleChoiceQuestion = (question, errors) => {
@@ -376,7 +533,21 @@ const importNewQuiz = async (rl) => {
                             question = transformMultipleChoiceQuestion(question, multipleChoiceErrors);
                             json.questions.push(question);
                         });
-                        const verificationResult = await verifyMedia(code, json.questions);
+                        const { themedRounds: parsedThemedRounds, errors: themedRoundParseErrors } = parseThemedRoundsFromRecords(records);
+                        const { categoryCovers, errors: categoryCoverErrors } = parseCategoryCoversFromRecords(records);
+                        const themedRounds = applyCategoryCoversToThemedRounds(parsedThemedRounds, categoryCovers);
+                        const themedRoundValidationErrors = validateThemedRounds(themedRounds, json.questions);
+                        const themedRoundErrors = themedRoundParseErrors
+                            .concat(categoryCoverErrors)
+                            .concat(themedRoundValidationErrors);
+                        if (themedRoundErrors.length) {
+                            logs = logs.concat(themedRoundErrors);
+                            throw new Error('Błędy w konfiguracji rund tematycznych.');
+                        }
+                        if (themedRounds.length) {
+                            json['themedRounds'] = themedRounds;
+                        }
+                        const verificationResult = await verifyMedia(code, json.questions, themedRounds);
                         if (multipleChoiceErrors.length) {
                             logs = logs.concat(multipleChoiceErrors);
                             throw new Error('Błędy w pytaniach wielokrotnego wyboru.');
@@ -417,12 +588,11 @@ KTron.Loader.quizzes.push(${jsonString});
     printLogs(logs);
 };
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-(async () => {
+const runCli = async () => {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
     console.clear();
     let answer = '';
     while (answer.toLowerCase() !== 'q') {
@@ -449,4 +619,10 @@ const rl = readline.createInterface({
                 break;
         }
     }
-})();
+};
+
+const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+
+if (isMainModule) {
+    runCli();
+}

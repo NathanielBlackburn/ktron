@@ -2,6 +2,10 @@ html {
 	height: 100%;
 }
 
+b, strong {
+	font-weight: 800;
+}
+
 .container {
 	position: relative;
 }
@@ -31,14 +35,14 @@ body {
 	margin: 10px 0;
 	text-align: center;
 	font-size: 17px;
-	font-weight: bold;
+	font-weight: 800;
 }
 
 #question-text {
 	margin: 10px 0;
 	text-align: center;
 	font-size: 20px;
-	font-weight: bold;
+	font-weight: 600;
 }
 
 .quiz-info-line {
@@ -48,7 +52,7 @@ body {
 
 .quiz-settings-form legend {
 	font-size: 0.95em;
-	font-weight: bold;
+	font-weight: 800;
 }
 
 #quiz-text-bottom {
@@ -145,7 +149,7 @@ button.rounded {
 }
 
 .bolder {
-	font-weight: bold;
+	font-weight: 800;
 }
 
 .mg-b-20 {
@@ -257,7 +261,7 @@ a.error-tooltip {
 
 #info-quiz-player div.team-name {
 	font-size: 30px;
-	font-weight: bold;
+	font-weight: 800;
 	color: deeppink;
 }
 
@@ -354,6 +358,70 @@ a.error-tooltip {
 	z-index: 10;
 }
 
+#themed-round-announcement {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: auto;
+	cursor: pointer;
+}
+
+#themed-round-announcement.hidden {
+	display: none;
+}
+
+#themed-round-announcement-overlay {
+	position: absolute;
+	inset: 0;
+	background-color: #fff;
+}
+
+#themed-round-announcement-content {
+	position: relative;
+	width: 80%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1.5rem;
+	transform-origin: center center;
+}
+
+#themed-round-announcement-text {
+	position: relative;
+	width: 100%;
+	text-align: center;
+	font-size: clamp(2rem, 8vw, 5rem);
+	font-weight: 800;
+	color: magenta;
+	line-height: 1.2;
+}
+
+#themed-round-announcement-text span.blue {
+	color: royalblue;
+}
+
+#themed-round-announcement-content.has-cover #themed-round-announcement-text {
+	font-size: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+#themed-round-announcement-cover {
+	max-width: min(70vw, 480px);
+	max-height: 40vh;
+	object-fit: contain;
+}
+
+#themed-round-announcement-content.has-cover #themed-round-announcement-cover {
+	max-width: min(90vw, 900px);
+	max-height: 70vh;
+}
+
+#themed-round-announcement-cover.hidden {
+	display: none;
+}
+
 div.in-game-tools {
 	z-index: 20;
 	position: absolute;
@@ -411,6 +479,7 @@ span.d-none {
 	bottom: 0;
 	right: 0;
 	margin: 1rem;
+	z-index: 30;
 }
 
 .toast-icon {
@@ -437,4 +506,12 @@ span.d-none {
 
 span.blue {
 	color: royalblue;
+}
+
+p.reverse {
+	-webkit-transform: rotateY(180deg);
+	-moz-transform: rotateY(180deg);
+	-o-transform: rotateY(180deg);
+	-ms-transform: rotateY(180deg);
+	transform: rotateY(180deg);
 }

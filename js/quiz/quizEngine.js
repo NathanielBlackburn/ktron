@@ -8,6 +8,7 @@ import { I18n } from '../core/i18n.js';
 export const QuizEngine = {
 	round: 1,
 	code: undefined,
+	themedRounds: [],
 
 	get settings() {
 		return settings;
@@ -97,6 +98,43 @@ export const QuizEngine = {
 			return 0;
 		}
 		return Math.floor(Math.random() * topLimit);
+	},
+
+	loadThemedRounds(quiz) {
+		this.themedRounds = quiz.themedRounds ? [...quiz.themedRounds] : [];
+	},
+
+	getThemedRoundConfig(round = this.round) {
+		return this.themedRounds.find((themedRound) => themedRound.round === round);
+	},
+
+	isThemedRound(round = this.round) {
+		return typeof this.getThemedRoundConfig(round) !== 'undefined';
+	},
+
+	/**
+	 * Categories still reserved for upcoming or current themed rounds.
+	 * Once every themed round for a category is past, leftovers re-enter the normal pool.
+	 */
+	getReservedCategories(round = this.round) {
+		return new Set(
+			this.themedRounds
+				.filter((themedRound) => themedRound.round >= round)
+				.map((themedRound) => themedRound.category),
+		);
+	},
+
+	getEligibleQuestions(unusedQuestions, themedCategory) {
+		if (themedCategory) {
+			return unusedQuestions.filter((question) => question.category === themedCategory);
+		}
+		const reservedCategories = this.getReservedCategories();
+		return unusedQuestions.filter((question) => {
+			if (!question.category) {
+				return true;
+			}
+			return !reservedCategories.has(question.category);
+		});
 	},
 
 	createFakeQuestion() {
@@ -194,19 +232,36 @@ export const QuizEngine = {
 			return null;
 		}
 		const unusedQuestions = this.questions.filter((q) => !q.used);
-		if (unusedQuestions.length == 0) {
+		const themedRoundConfig = this.getThemedRoundConfig();
+		const eligibleQuestions = this.getEligibleQuestions(
+			unusedQuestions,
+			themedRoundConfig?.category,
+		);
+		if (eligibleQuestions.length == 0) {
 			const fake = this.createFakeQuestion();
 			this.currentQuestion = fake;
 			return { question: fake, startRound: false };
 		}
-		const newQuestion = unusedQuestions[this.getRandomNumber(unusedQuestions.length)];
+		const newQuestion = eligibleQuestions[this.getRandomNumber(eligibleQuestions.length)];
 		DB.useUpQuestion(newQuestion, currentPlayer);
 		newQuestion.used = true;
 		this.currentQuestion = newQuestion;
-		return {
+		const startRound = this.isFirstTurnOfRound();
+		const result = {
 			question: newQuestion,
-			startRound: this.isFirstTurnOfRound(),
+			startRound,
 		};
+		if (startRound && themedRoundConfig) {
+			result.themedRoundToast = {
+				round: themedRoundConfig.round,
+				name: themedRoundConfig.name,
+				category: themedRoundConfig.category,
+			};
+			if (themedRoundConfig.cover) {
+				result.themedRoundToast.cover = themedRoundConfig.cover;
+			}
+		}
+		return result;
 	},
 
 	applyCorrectAnswer(points = 1) {
@@ -289,9 +344,11 @@ export const QuizEngine = {
 
 	restoreGameState(game) {
 		const index = Loader.quizzes.findIndex((quiz) => quiz.code == game.game_code);
-		this.questions = Loader.quizzes[index].questions;
-		this.code = Loader.quizzes[index].code;
-		this.title = Loader.quizzes[index].title;
+		const quiz = Loader.quizzes[index];
+		this.questions = quiz.questions;
+		this.code = quiz.code;
+		this.title = quiz.title;
+		this.loadThemedRounds(quiz);
 		this.players = DB.fetchAllPlayers();
 		const usedQuestions = DB.fetchUsedQuestions();
 		this.questions = this.questions.map((question) => {
@@ -325,6 +382,7 @@ export const QuizEngine = {
 		this.questions = quiz.questions;
 		this.code = quizCode;
 		this.title = quiz.title;
+		this.loadThemedRounds(quiz);
 		this.questions.forEach((question) => {
 			question.used = false;
 		});
@@ -335,6 +393,9 @@ export const QuizEngine = {
 		if (!this.gameInProgress) {
 			return { ok: false, reason: 'notInProgress' };
 		}
+		if (this.overtime) {
+			return { ok: false, reason: 'overtime' };
+		}
 		const player = DB.fetchPlayer(playerId);
 		if (!player?.isActive) {
 			return { ok: false, reason: 'invalidPlayer' };
@@ -342,9 +403,7 @@ export const QuizEngine = {
 		if (this.activePlayersCount() <= 1) {
 			return { ok: false, reason: 'minPlayers' };
 		}
-		const wasCurrentPlayer = this.overtime
-			? (this.overtime.findNextPlayer()?.ID === playerId)
-			: (this.resolveCurrentPlayer()?.ID === playerId);
+		const wasCurrentPlayer = this.resolveCurrentPlayer()?.ID === playerId;
 		const lastQuestion = DB.fetchLastQuestion();
 		const needsRestore = wasCurrentPlayer
 			&& lastQuestion
@@ -360,23 +419,14 @@ export const QuizEngine = {
 		DB.markPlayerRemoved(playerId);
 		DB.zeroPlayerPoints(playerId);
 		this.players = DB.fetchAllPlayers();
-		if (this.overtime) {
-			const overtimePlayer = this.overtime.findPlayer((p) => p.ID == playerId);
-			if (overtimePlayer) {
-				overtimePlayer.status = 'finished';
-				OvertimeRepository.save(this.overtime);
-			}
-		}
 
 		let needsContinue = false;
 		if (wasCurrentPlayer) {
-			if (!this.overtime) {
-				this.getNextPlayer();
-				if (this.currentPlayerIndex >= this.players.length) {
-					const endOfRoundResult = this.handleEndOfRound();
-					if (endOfRoundResult == 'endQuiz') {
-						return { ok: true, wasCurrentPlayer: true, needsContinue: false, endQuiz: true };
-					}
+			this.getNextPlayer();
+			if (this.currentPlayerIndex >= this.players.length) {
+				const endOfRoundResult = this.handleEndOfRound();
+				if (endOfRoundResult == 'endQuiz') {
+					return { ok: true, wasCurrentPlayer: true, needsContinue: false, endQuiz: true };
 				}
 			}
 			needsContinue = true;

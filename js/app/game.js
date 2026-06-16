@@ -55,7 +55,7 @@ export const Game = {
 				Game.endQuiz(true);
 				return;
 			}
-			if (endOfRoundResult == 'newRound') {
+			if (endOfRoundResult == 'newRound' && !QuizEngine.isThemedRound()) {
 				showToast(I18n.t('toast.newRound'));
 			}
 		}
@@ -66,6 +66,9 @@ export const Game = {
 		View.showQuestion(result.question);
 		if (result.startRound) {
 			DB.startRound(QuizEngine.round);
+		}
+		if (result.themedRoundToast) {
+			View.showThemedRoundAnnouncement(result.themedRoundToast);
 		}
 		View.updateQuizInfo();
 		View.showEl('#getAnswer');
@@ -96,7 +99,7 @@ export const Game = {
 			Game.endQuiz(true, turnResult.endQuizPlaces);
 			return;
 		}
-		if (turnResult.newRoundToast) {
+		if (turnResult.newRoundToast && !QuizEngine.isThemedRound()) {
 			showToast(I18n.t('toast.newRound'));
 		}
 		Game.nextTurn(turnResult.nextRound);
@@ -125,6 +128,7 @@ export const Game = {
 			if (outcome.showWinner) {
 				DB.endQuiz();
 				View.showWinner(outcome.showWinner);
+				View.updatePointsModal(false);
 			} else if (outcome.startOvertime) {
 				if (outcome.restoreLastQuestion) {
 					QuizEngine.debug('Quiz zakończony ręcznie, przywróć ostatnie pytanie');
@@ -146,10 +150,13 @@ export const Game = {
 		if (!result.ok) {
 			if (result.reason == 'minPlayers') {
 				showToast(I18n.t('toast.minOnePlayer'), 'error');
+			} else if (result.reason == 'overtime') {
+				showToast(I18n.t('toast.removePlayerInOvertime'), 'error');
 			}
 			return;
 		}
 		if (result.endQuiz) {
+			View.hidePointsModal();
 			Game.endQuiz(true);
 			return;
 		}
@@ -168,6 +175,7 @@ export const Game = {
 		OvertimeRepository.begin(overtime);
 		QuizEngine.overtime = overtime;
 		View.displayOvertimeMessage();
+		View.updatePointsModal(false);
 		Game.nextTurn();
 	},
 };
