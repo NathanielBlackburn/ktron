@@ -93,6 +93,10 @@ export const QuizEngine = {
 		return undefined;
 	},
 
+	quizHasMcNotes() {
+		return (this.questions || []).some((question) => typeof question.mcNotes === 'string' && question.mcNotes.trim() !== '');
+	},
+
 	getRandomNumber(topLimit) {
 		if (Loader.config.dontRandomize) {
 			return 0;

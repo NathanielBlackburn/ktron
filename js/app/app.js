@@ -5,6 +5,7 @@ import { QuizEngine } from '../quiz/quizEngine.js';
 import { I18n, i18nReady, initI18n } from '../core/i18n.js';
 import { showToast } from '../ui/helpers.js';
 import { View } from '../ui/ui.js';
+import { McNotesPopup } from '../ui/mcNotesPopup.js';
 import { Game } from './game.js';
 
 const finishQuizLoading = () => {
@@ -89,6 +90,8 @@ export const App = {
 			}
 			if (event.shiftKey && event.code == 'KeyP' && QuizEngine.gameInProgress) {
 				View.togglePointsModal();
+			} else if (event.shiftKey && event.code == 'KeyN' && QuizEngine.gameInProgress) {
+				McNotesPopup.open();
 			} else if (event.shiftKey && event.altKey && event.code == 'KeyQ') {
 				if (confirm(I18n.t('confirm.easterEgg'))) {
 					DB.purge();

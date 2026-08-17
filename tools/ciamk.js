@@ -1,4 +1,4 @@
-const CIAMK_VERSION = '1.3.1';
+const CIAMK_VERSION = '1.3.2';
 
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
@@ -257,6 +257,13 @@ const verifyMedia = async (code, questions, themedRounds = []) => {
 const checkCSVColumns = (rec) => {
     const fields = ['question', 'questionType', 'answer', 'answerType'];
     return fields.every((field) => typeof rec[field] !== 'undefined');
+};
+
+export const applyMcNotesFromRecord = (question, rec) => {
+    if (typeof rec.mcNotes !== 'undefined' && rec.mcNotes.trim()) {
+        question.mcNotes = rec.mcNotes.trim();
+    }
+    return question;
 };
 
 const arrayIntersection = (arr1, arr2) => {
@@ -530,6 +537,7 @@ const importNewQuiz = async (rl) => {
                             if (typeof rec.category !== 'undefined' && rec.category.trim()) {
                                 question['category'] = rec.category.trim();
                             }
+                            question = applyMcNotesFromRecord(question, rec);
                             question = transformMultipleChoiceQuestion(question, multipleChoiceErrors);
                             json.questions.push(question);
                         });

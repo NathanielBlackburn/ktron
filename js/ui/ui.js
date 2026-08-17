@@ -8,6 +8,7 @@ import { error, formatOvertimePoints, showToast, pointsToWords } from './helpers
 import { arrayIntersection, renderTags } from '../core/util.js';
 import { Assets } from '../core/assets.js';
 import { QuizEngine } from '../quiz/quizEngine.js';
+import { McNotesPopup } from './mcNotesPopup.js';
 
 const getMainCarousel = () => {
 	const el = document.getElementById('main');
@@ -511,6 +512,7 @@ export const View = {
 		View.createImageContainer(question, false);
 		View.createAudioContainer(question, false);
 		View.createVideoContainer(question, false);
+		McNotesPopup.update(question);
 	},
 
 	showAnswer(question) {

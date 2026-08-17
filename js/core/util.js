@@ -27,7 +27,8 @@ export const unescapeHTML = (text) => {
 export const renderTags = (text) => {
 	const escaped = escapeHTML(text);
 	return escaped
-		.replace(/\[br\]/g, '<br>')
+		.replace(/\[br\]/g, '<br />')
+		.replace(/\[brbr\]/g, '<br /><br />')
 		.replace(/\[b\](.*?)\[\/b\]/g, '<b>$1</b>')
 		.replace(/\[i\](.*?)\[\/i\]/g, '<i>$1</i>')
 		.replace(/\[blue\](.*?)\[\/blue\]/g, '<span class="blue">$1</span>')

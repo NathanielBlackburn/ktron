@@ -5,6 +5,7 @@ import { Loader } from '../core/config.js';
 import { I18n } from '../core/i18n.js';
 import { error, showToast } from '../ui/helpers.js';
 import { View } from '../ui/ui.js';
+import { McNotesPopup } from '../ui/mcNotesPopup.js';
 import { QuizEngine } from '../quiz/quizEngine.js';
 
 export const Game = {
@@ -38,6 +39,7 @@ export const Game = {
 		View.updateQuizInfo();
 		View.showEl('#getAnswer');
 		View.showEndQuizButton();
+		McNotesPopup.start();
 	},
 
 	startGameProgress(quizCode) {
@@ -46,6 +48,7 @@ export const Game = {
 		View.showQuizChrome();
 		View.createPointsModal();
 		Game.nextQuestion();
+		McNotesPopup.start();
 	},
 
 	nextQuestion() {
@@ -126,6 +129,7 @@ export const Game = {
 
 			const outcome = QuizEngine.computeEndGameOutcome(automatic, places);
 			if (outcome.showWinner) {
+				McNotesPopup.stop();
 				DB.endQuiz();
 				View.showWinner(outcome.showWinner);
 				View.updatePointsModal(false);
