@@ -4,6 +4,13 @@ import { OvertimeRepository } from '../model/overtimeRepository.js';
 import { DB } from '../core/db.js';
 import { Loader } from '../core/config.js';
 import { I18n } from '../core/i18n.js';
+import {
+	assignPoolWeights,
+	boostUnselectedWeights,
+	getQuestionWeight,
+	getSpecifiedQuestionProbabilities,
+	pickWeightedQuestion,
+} from './questionWeights.js';
 
 export const QuizEngine = {
 	round: 1,
@@ -246,7 +253,15 @@ export const QuizEngine = {
 			this.currentQuestion = fake;
 			return { question: fake, startRound: false };
 		}
-		const newQuestion = eligibleQuestions[this.getRandomNumber(eligibleQuestions.length)];
+		const getWeight = (question) => getQuestionWeight(question, {
+			themedCategory: themedRoundConfig?.category,
+			themedRounds: this.themedRounds,
+		});
+		this.debugCurrentProbabilities(eligibleQuestions, getWeight, themedRoundConfig);
+		const newQuestion = pickWeightedQuestion(eligibleQuestions, getWeight, {
+			dontRandomize: Loader.config.dontRandomize,
+		});
+		boostUnselectedWeights(eligibleQuestions, newQuestion, getWeight);
 		DB.useUpQuestion(newQuestion, currentPlayer);
 		newQuestion.used = true;
 		this.currentQuestion = newQuestion;
@@ -359,6 +374,7 @@ export const QuizEngine = {
 			question['used'] = usedQuestions.includes(question.id);
 			return question;
 		});
+		assignPoolWeights(this.questions, this.themedRounds);
 
 		let questionToShow;
 		if (game.status == 'overtime') {
@@ -390,6 +406,7 @@ export const QuizEngine = {
 		this.questions.forEach((question) => {
 			question.used = false;
 		});
+		assignPoolWeights(this.questions, this.themedRounds);
 		this.newQuiz(quizCode);
 	},
 
@@ -437,6 +454,21 @@ export const QuizEngine = {
 		}
 
 		return { ok: true, wasCurrentPlayer, needsContinue };
+	},
+
+	debugCurrentProbabilities(eligibleQuestions, getWeight, themedRoundConfig) {
+		const rows = getSpecifiedQuestionProbabilities(eligibleQuestions, getWeight);
+		if (!rows.length) {
+			return;
+		}
+		const pool = themedRoundConfig
+			? `runda tematyczna: ${themedRoundConfig.category}`
+			: 'pula globalna';
+		this.debug(`Prawdopodobieństwa (${pool}):`, rows.map((row) => ({
+			id: row.id,
+			configured: row.configured,
+			current: `${row.current.toFixed(2)}%`,
+		})));
 	},
 
 	debug() {

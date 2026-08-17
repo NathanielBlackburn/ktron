@@ -1,10 +1,11 @@
-const CIAMK_VERSION = '1.3.2';
+const CIAMK_VERSION = '1.3.3';
 
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline/promises';
+import { validateProbabilities } from '../js/quiz/questionWeights.js';
 // import { EOL } from "node:os";
 // const SEP = path.sep;
 
@@ -266,6 +267,20 @@ export const applyMcNotesFromRecord = (question, rec) => {
     return question;
 };
 
+export const applyProbabilityFromRecord = (question, rec, errors = []) => {
+    if (typeof rec.probability === 'undefined' || !String(rec.probability).trim()) {
+        return question;
+    }
+    const raw = String(rec.probability).trim().replace(',', '.');
+    const value = Number(raw);
+    if (!Number.isFinite(value)) {
+        errors.push(`Pytanie ${question.id}: niepoprawna wartość probability ("${String(rec.probability).trim()}").`);
+        return question;
+    }
+    question.probability = value;
+    return question;
+};
+
 const arrayIntersection = (arr1, arr2) => {
 	const set1 = new Set(arr1);
 	const set2 = new Set(arr2);
@@ -522,6 +537,7 @@ const importNewQuiz = async (rl) => {
                         // TODO: Handle HTML tags
                         // TODO: Handle the [spoiler] prefix
                         const multipleChoiceErrors = [];
+                        const probabilityErrors = [];
                         records.forEach((rec, index) => {
                             if (!checkCSVColumns(rec)) {
                                 throw new Error('Niepoprawne nagłówki kolumn w pliku csv.');
@@ -538,6 +554,7 @@ const importNewQuiz = async (rl) => {
                                 question['category'] = rec.category.trim();
                             }
                             question = applyMcNotesFromRecord(question, rec);
+                            question = applyProbabilityFromRecord(question, rec, probabilityErrors);
                             question = transformMultipleChoiceQuestion(question, multipleChoiceErrors);
                             json.questions.push(question);
                         });
@@ -554,6 +571,11 @@ const importNewQuiz = async (rl) => {
                         }
                         if (themedRounds.length) {
                             json['themedRounds'] = themedRounds;
+                        }
+                        const probabilityValidationErrors = validateProbabilities(json.questions, themedRounds);
+                        if (probabilityErrors.length || probabilityValidationErrors.length) {
+                            logs = logs.concat(probabilityErrors).concat(probabilityValidationErrors);
+                            throw new Error('Błędy w kolumnie probability.');
                         }
                         const verificationResult = await verifyMedia(code, json.questions, themedRounds);
                         if (multipleChoiceErrors.length) {
