@@ -81,11 +81,13 @@ export const View = {
 	showEl(selector) {
 		const element = (selector.constructor == jQuery().constructor) ? selector : jQuery(selector);
 		element.removeClass('d-none');
+		McNotesPopup.syncControls();
 	},
 
 	hideEl(selector) {
 		const element = (selector.constructor == jQuery().constructor) ? selector : jQuery(selector);
 		element.addClass('d-none');
+		McNotesPopup.syncControls();
 	},
 
 	fillDataNodes(node) {
@@ -261,28 +263,58 @@ export const View = {
 		}
 	},
 
+	clearThemedRoundCover() {
+		const coverImg = document.getElementById('themed-round-announcement-cover');
+		const coverVideo = document.getElementById('themed-round-announcement-cover-video');
+		if (coverImg) {
+			coverImg.removeAttribute('src');
+			delete coverImg.dataset.originalSrc;
+			coverImg.removeAttribute('alt');
+			coverImg.classList.add('hidden');
+		}
+		if (coverVideo) {
+			coverVideo.pause();
+			coverVideo.removeAttribute('src');
+			coverVideo.load();
+			coverVideo.classList.add('hidden');
+		}
+	},
+
+	setThemedRoundCover(cover, category) {
+		this.clearThemedRoundCover();
+		if (!cover) {
+			return;
+		}
+		const src = `pytania/${QuizEngine.code}/${cover}`;
+		if (Assets.isVideoFileName(cover)) {
+			const coverVideo = document.getElementById('themed-round-announcement-cover-video');
+			if (coverVideo) {
+				coverVideo.src = src;
+				coverVideo.classList.remove('hidden');
+				coverVideo.play().catch(() => {});
+			}
+			return;
+		}
+		const coverImg = document.getElementById('themed-round-announcement-cover');
+		if (coverImg) {
+			coverImg.src = src;
+			coverImg.dataset.originalSrc = src;
+			coverImg.alt = category;
+			coverImg.classList.remove('hidden');
+		}
+	},
+
 	showThemedRoundAnnouncement({ round, category, cover }) {
 		const container = document.getElementById('themed-round-announcement');
 		const overlay = document.getElementById('themed-round-announcement-overlay');
 		const content = document.getElementById('themed-round-announcement-content');
 		const text = document.getElementById('themed-round-announcement-text');
-		const coverImg = document.getElementById('themed-round-announcement-cover');
 		if (!container || !overlay || !content || !text) {
 			return;
 		}
 		text.innerHTML = renderTags(I18n.t('toast.themedRound', { category }));
 		content.classList.toggle('has-cover', Boolean(cover));
-		if (coverImg) {
-			if (cover) {
-				coverImg.src = `pytania/${QuizEngine.code}/${cover}`;
-				coverImg.alt = category;
-				coverImg.classList.remove('hidden');
-			} else {
-				coverImg.removeAttribute('src');
-				coverImg.removeAttribute('alt');
-				coverImg.classList.add('hidden');
-			}
-		}
+		this.setThemedRoundCover(cover, category);
 		const dismiss = () => {
 			gsap.killTweensOf([overlay, content]);
 			gsap.to([overlay, content], {
@@ -294,11 +326,7 @@ export const View = {
 					container.setAttribute('aria-hidden', 'true');
 					content.classList.remove('has-cover');
 					gsap.set([overlay, content], { clearProps: 'all' });
-					if (coverImg) {
-						coverImg.removeAttribute('src');
-						coverImg.removeAttribute('alt');
-						coverImg.classList.add('hidden');
-					}
+					this.clearThemedRoundCover();
 				},
 			});
 		};
@@ -403,6 +431,30 @@ export const View = {
 		View.hideEl('#audio-container');
 	},
 
+	getAltImageSrc(src) {
+		const dotIndex = src.lastIndexOf('.');
+		if (dotIndex === -1) {
+			return src;
+		}
+		return src.slice(0, dotIndex) + '-alt' + src.slice(dotIndex);
+	},
+
+	setImageAlt(selector, showAlt, { skipPre = false } = {}) {
+		const img = document.querySelector(selector);
+		if (!img || !img.dataset.originalSrc) {
+			return;
+		}
+		if (skipPre && img.dataset.originalSrc.startsWith('res/pre_')) {
+			return;
+		}
+		img.src = showAlt ? this.getAltImageSrc(img.dataset.originalSrc) : img.dataset.originalSrc;
+	},
+
+	setShownImageAlt(showAlt) {
+		this.setImageAlt('#image-container img.question-image', showAlt, { skipPre: true });
+		this.setImageAlt('#themed-round-announcement-cover', showAlt);
+	},
+
 	createImageContainer(question, isAnswer) {
 		const mediaTypes = (isAnswer ? question.answerType : question.questionType).toLowerCase().trim().split('|');
 		const intersection = arrayIntersection(Assets.imageTypes, mediaTypes);
@@ -423,6 +475,7 @@ export const View = {
 			src = 'pytania/' + quizCode + '/' + question.id + lastPart;
 		}
 		image.src = src;
+		image.dataset.originalSrc = src;
 		const imageContainer = jQuery('#image-container');
 		imageContainer.append(image);
 		const viewer = new Viewer(image, {
@@ -430,7 +483,7 @@ export const View = {
 			toolbar: false,
 			movable: false,
 			viewed() {
-				viewer.zoomTo(2);
+				viewer.zoomTo(1);
 			},
 		});
 		View.showEl(imageContainer);

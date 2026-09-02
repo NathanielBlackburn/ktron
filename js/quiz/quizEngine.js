@@ -261,7 +261,10 @@ export const QuizEngine = {
 		const newQuestion = pickWeightedQuestion(eligibleQuestions, getWeight, {
 			dontRandomize: Loader.config.dontRandomize,
 		});
-		boostUnselectedWeights(eligibleQuestions, newQuestion, getWeight);
+		boostUnselectedWeights(eligibleQuestions, newQuestion, {
+			allQuestions: this.questions,
+			themedRounds: this.themedRounds,
+		});
 		DB.useUpQuestion(newQuestion, currentPlayer);
 		newQuestion.used = true;
 		this.currentQuestion = newQuestion;
@@ -374,7 +377,7 @@ export const QuizEngine = {
 			question['used'] = usedQuestions.includes(question.id);
 			return question;
 		});
-		assignPoolWeights(this.questions, this.themedRounds);
+		assignPoolWeights(this.questions, this.themedRounds, { resetCurrent: true });
 
 		let questionToShow;
 		if (game.status == 'overtime') {
@@ -406,7 +409,7 @@ export const QuizEngine = {
 		this.questions.forEach((question) => {
 			question.used = false;
 		});
-		assignPoolWeights(this.questions, this.themedRounds);
+		assignPoolWeights(this.questions, this.themedRounds, { resetCurrent: true });
 		this.newQuiz(quizCode);
 	},
 

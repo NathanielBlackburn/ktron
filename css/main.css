@@ -407,18 +407,21 @@ a.error-tooltip {
 	font-size: clamp(1.25rem, 4vw, 2.5rem);
 }
 
-#themed-round-announcement-cover {
+#themed-round-announcement-cover,
+#themed-round-announcement-cover-video {
 	max-width: min(70vw, 480px);
 	max-height: 40vh;
 	object-fit: contain;
 }
 
-#themed-round-announcement-content.has-cover #themed-round-announcement-cover {
+#themed-round-announcement-content.has-cover #themed-round-announcement-cover,
+#themed-round-announcement-content.has-cover #themed-round-announcement-cover-video {
 	max-width: min(90vw, 900px);
 	max-height: 70vh;
 }
 
-#themed-round-announcement-cover.hidden {
+#themed-round-announcement-cover.hidden,
+#themed-round-announcement-cover-video.hidden {
 	display: none;
 }
 

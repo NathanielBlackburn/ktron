@@ -7,6 +7,7 @@ import {
 	getQuestionWeight,
 	getSpecifiedQuestionProbabilities,
 	pickWeightedQuestion,
+	PROBABILITY_MISS_INCREMENT,
 	validateProbabilities,
 } from '../../js/quiz/questionWeights.js';
 
@@ -118,28 +119,32 @@ console.log('Case 3: Themed and unthemed percentages are validated in separate p
 
 console.log(padInfo('assignPoolWeights tests'));
 
-console.log('Case 1: 60% among 10 questions becomes weight 13.5 with increment 1.5.');
+console.log('Case 1: 60% among 10 questions becomes weight 13.5.');
 
 {
 	const questions = makePool(10, { '001': 60 });
-	assignPoolWeights(questions);
+	assignPoolWeights(questions, [], { resetCurrent: true });
 	console.assert(almostEqual(questions[0].selectionWeight, 13.5), '60% of 10 questions should convert to weight 13.5.');
-	console.assert(almostEqual(questions[0].weightIncrement, 1.5), 'Miss increment for 60% should be 1.5.');
+	console.assert(almostEqual(questions[0].currentProbability, 60), 'Current probability should start at the configured value.');
 	console.assert(questions.slice(1).every((question) => question.selectionWeight === 1), 'Unspecified questions should keep weight 1.');
 	const total = questions.reduce((sum, question) => sum + question.selectionWeight, 0);
 	console.assert(almostEqual(questions[0].selectionWeight / total, 0.6), 'First draw probability should be 60%.');
 }
 
-console.log('Case 2: After a miss, weight 13.5 becomes 15 (62.5% against the original defaults).');
+console.log(`Case 2: After a miss, probability rises by ${PROBABILITY_MISS_INCREMENT} points (60% -> 70%).`);
 
 {
 	const questions = makePool(10, { '001': 60 });
-	assignPoolWeights(questions);
-	boostUnselectedWeights(questions, questions[1], (question) => question.selectionWeight);
-	console.assert(almostEqual(questions[0].selectionWeight, 15), 'Unselected boosted question should gain 1.5 weight.');
+	assignPoolWeights(questions, [], { resetCurrent: true });
+	boostUnselectedWeights(questions, questions[1], {
+		allQuestions: questions,
+		themedRounds: [],
+	});
+	console.assert(almostEqual(questions[0].currentProbability, 70), 'Unselected boosted question should gain 10 percentage points.');
+	console.assert(almostEqual(questions[0].selectionWeight, 21), '70% among 10 questions should convert to weight 21.');
 	console.assert(questions[1].selectionWeight === 1, 'The selected default question should not be incremented.');
 	const againstOriginalDefaults = questions[0].selectionWeight / (questions[0].selectionWeight + 9);
-	console.assert(almostEqual(againstOriginalDefaults, 0.625), 'Updated weight should be 62.5% against the original nine defaults.');
+	console.assert(almostEqual(againstOriginalDefaults, 0.7), 'Updated weight should be 70% against the original nine defaults.');
 }
 
 console.log('Case 3: Themed probabilities do not affect the unthemed pool.');
@@ -152,7 +157,7 @@ console.log('Case 3: Themed probabilities do not affect the unthemed pool.');
 		...Array.from({ length: 9 }, (_, index) => makeQuestion(`2${(index + 1).toString().padStart(2, '0')}`)),
 	];
 	const themedRounds = [{ round: 5, name: 'lit', category: 'Literatura' }];
-	assignPoolWeights(questions, themedRounds);
+	assignPoolWeights(questions, themedRounds, { resetCurrent: true });
 	const themedBoosted = questions.find((question) => question.id === '001');
 	const unthemedBoosted = questions.find((question) => question.id === '002');
 	console.assert(almostEqual(themedBoosted.selectionWeight, 13.5), 'Themed 60% should be weighted against its category pool.');
@@ -167,7 +172,7 @@ console.log('Case 4: Leftover themed questions use weight 1 in the global pool.'
 		makeQuestion('002'),
 	];
 	const themedRounds = [{ round: 5, name: 'lit', category: 'Literatura' }];
-	assignPoolWeights(questions, themedRounds);
+	assignPoolWeights(questions, themedRounds, { resetCurrent: true });
 	console.assert(almostEqual(questions[0].selectionWeight, 60), 'A lone themed percentage question should keep its specified weight in the themed pool.');
 	console.assert(
 		getQuestionWeight(questions[0], { themedCategory: 'Literatura', themedRounds }) === questions[0].selectionWeight,
@@ -187,7 +192,7 @@ console.log('Case 5: Weighted pick follows the cumulative weight threshold.');
 
 {
 	const questions = makePool(10, { '001': 60 });
-	assignPoolWeights(questions);
+	assignPoolWeights(questions, [], { resetCurrent: true });
 	const getWeight = (question) => question.selectionWeight;
 	const early = pickWeightedQuestion(questions, getWeight, { random: () => 0 });
 	console.assert(early.id === '001', 'A low random value should pick the boosted question.');
@@ -259,9 +264,10 @@ console.log('Case 1: A missed boosted question gains weight before the next draw
 	QuizEngine.currentPlayerIndex = 0;
 	QuizEngine.players = [{ ID: 1, name: 'Player 1', isActive: true, isRemoved: false }];
 	QuizEngine.questions = makePool(10, { '010': 60 });
-	assignPoolWeights(QuizEngine.questions);
+	assignPoolWeights(QuizEngine.questions, [], { resetCurrent: true });
 	const first = QuizEngine.pickNextQuestion();
 	console.assert(first.question.id === '001', 'dontRandomize should still pick the first eligible question.');
 	const boosted = QuizEngine.questions.find((question) => question.id === '010');
-	console.assert(almostEqual(boosted.selectionWeight, 15), 'Unselected 60% question should rise from 13.5 to 15.');
+	console.assert(almostEqual(boosted.currentProbability, 70), 'Unselected 60% question should rise to 70%.');
+	console.assert(almostEqual(boosted.selectionWeight, 21), '70% weight should be recalculated to 21.');
 }

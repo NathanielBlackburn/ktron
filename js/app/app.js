@@ -7,6 +7,7 @@ import { showToast } from '../ui/helpers.js';
 import { View } from '../ui/ui.js';
 import { McNotesPopup } from '../ui/mcNotesPopup.js';
 import { Game } from './game.js';
+import { handleQuizKeyup } from './quizKeybindings.js';
 
 const finishQuizLoading = () => {
 	Loader.quizzesReady = true;
@@ -84,9 +85,20 @@ const loadQuizManifest = () => {
 
 export const App = {
 	bindKeypress() {
+		jQuery(document).on('keydown', (event) => {
+			if (event.target.matches('input, textarea, select')) {
+				return;
+			}
+			if (event.key === 't' && QuizEngine.gameInProgress) {
+				View.setShownImageAlt(true);
+			}
+		});
 		jQuery(document).on('keyup', (event) => {
 			if (event.target.matches('input, textarea, select')) {
 				return;
+			}
+			if (event.key === 't' && QuizEngine.gameInProgress) {
+				View.setShownImageAlt(false);
 			}
 			if (event.shiftKey && event.code == 'KeyP' && QuizEngine.gameInProgress) {
 				View.togglePointsModal();
@@ -97,18 +109,11 @@ export const App = {
 					DB.purge();
 				}
 			} else if (QuizEngine.gameInProgress) {
-				const key = event.key.toLowerCase();
-				if ((key === 'a' || key === 'o') && jQuery('#getAnswer').is(':visible')) {
-					Game.questionAnswered();
-				} else if (jQuery('#notAnswered').is(':visible')) {
-					if (key === '0') {
-						Game.answeredIncorrectly();
-					} else if (key === '1' && jQuery('#buttonOne').is(':visible')) {
-						Game.answeredCorrectly(1);
-					} else if (key === '2' && jQuery('#buttonTwo').is(':visible')) {
-						Game.answeredCorrectly(2);
-					}
-				}
+				handleQuizKeyup(event, {
+					document: window.document,
+					isGameInProgress: () => QuizEngine.gameInProgress,
+					actions: Game,
+				});
 			}
 		});
 		jQuery('#player-add-name').on('keyup', (event) => {

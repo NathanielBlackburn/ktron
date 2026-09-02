@@ -112,8 +112,33 @@ console.log('Case 2: Returns true when at least one question has notes.');
 	console.assert(QuizEngine.quizHasMcNotes() === true, 'A non-empty mcNotes field should enable notes.');
 }
 
+const createMockClassList = (initial = []) => {
+	const classes = new Set(initial);
+	return {
+		contains(className) {
+			return classes.has(className);
+		},
+		toggle(className, force) {
+			if (force === undefined) {
+				if (classes.has(className)) {
+					classes.delete(className);
+				} else {
+					classes.add(className);
+				}
+				return;
+			}
+			if (force) {
+				classes.add(className);
+			} else {
+				classes.delete(className);
+			}
+		},
+	};
+};
+
 const createMockPopup = () => {
 	const elements = {};
+	const listeners = {};
 	return {
 		closed: false,
 		focused: false,
@@ -122,11 +147,23 @@ const createMockPopup = () => {
 			open() {},
 			write() {
 				elements['mc-notes-body'] = { innerHTML: '' };
+				elements['mc-notes-controls'] = {};
 			},
 			close() {},
 			getElementById(id) {
 				return elements[id] || null;
 			},
+			addEventListener(type, handler) {
+				listeners[type] = handler;
+			},
+			removeEventListener(type, handler) {
+				if (listeners[type] === handler) {
+					delete listeners[type];
+				}
+			},
+		},
+		addControlButton(id) {
+			elements[`mc-notes-${id}`] = { classList: createMockClassList(['hidden']) };
 		},
 		focus() {
 			this.focused = true;
@@ -139,7 +176,7 @@ const createMockPopup = () => {
 
 console.log(padInfo('McNotesPopup tests'));
 
-console.log('Case 1: start() does not open a window when the quiz has no notes.');
+console.log('Case 1: start() does not auto-open a window when the quiz has no notes.');
 
 {
 	McNotesPopup.popup = null;
@@ -150,8 +187,8 @@ console.log('Case 1: start() does not open a window when the quiz has no notes.'
 	QuizEngine.questions = [makeQuestion('001')];
 	QuizEngine.currentQuestion = QuizEngine.questions[0];
 	McNotesPopup.start();
-	console.assert(McNotesPopup.enabled === false, 'Notes popup should stay disabled without mcNotes.');
-	console.assert(McNotesPopup.popup === null, 'Notes popup should not be created without mcNotes.');
+	console.assert(McNotesPopup.enabled === true, 'Notes popup should be enabled during a game without mcNotes.');
+	console.assert(McNotesPopup.popup === null, 'Notes popup should not auto-open without mcNotes.');
 }
 
 console.log('Case 2: start() opens a window and shows notes for the current question.');
@@ -222,4 +259,57 @@ console.log('Case 5: A question without notes shows the empty message.');
 		'Questions without mcNotes should show the empty-notes message.',
 	);
 	McNotesPopup.stop();
+}
+
+console.log('Case 6: open() works manually when the quiz has no mcNotes.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	McNotesPopup.popup = null;
+	McNotesPopup.enabled = false;
+	McNotesPopup.openWindow = () => popup;
+	QuizEngine.questions = [makeQuestion('006')];
+	QuizEngine.currentQuestion = QuizEngine.questions[0];
+	McNotesPopup.start();
+	McNotesPopup.open();
+	console.assert(McNotesPopup.popup === popup, 'Shift+N should open notes even without mcNotes in the quiz.');
+	console.assert(
+		popup.document.getElementById('mc-notes-body').innerHTML.includes('mcNotes.empty'),
+		'Manual open without mcNotes should show the empty-notes message.',
+	);
+	McNotesPopup.stop();
+}
+
+console.log('Case 7: syncControls mirrors main window button visibility.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	['getAnswer', 'endQuiz', 'buttonOne'].forEach((id) => popup.addControlButton(id));
+	const mainElements = {
+		getAnswer: { classList: createMockClassList() },
+		endQuiz: { classList: createMockClassList(['d-none']) },
+		buttonOne: { classList: createMockClassList(['d-none']) },
+	};
+	const previousWindow = globalThis.window;
+	globalThis.window = {
+		document: {
+			getElementById(id) {
+				return mainElements[id] || null;
+			},
+		},
+	};
+	McNotesPopup.popup = popup;
+	McNotesPopup.syncControls();
+	console.assert(
+		!popup.document.getElementById('mc-notes-getAnswer').classList.contains('hidden'),
+		'Visible main buttons should appear in the notes popup.',
+	);
+	console.assert(
+		popup.document.getElementById('mc-notes-endQuiz').classList.contains('hidden'),
+		'Hidden main buttons should stay hidden in the notes popup.',
+	);
+	globalThis.window = previousWindow;
+	McNotesPopup.popup = null;
 }
