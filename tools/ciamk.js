@@ -12,7 +12,7 @@ import { validateProbabilities } from '../js/quiz/questionWeights.js';
 const MEDIATYPES = {
     image: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
     audio: ['mp3', 'm4a'],
-    video: ['mp4']
+    video: ['mp4', 'webm']
 };
 
 const padId = (id) => {
@@ -169,6 +169,20 @@ const normaliseFileName = (filePath) => {
     return newPath;
 };
 
+export const getBaseFileNameFromAlt = (fileName) => {
+    const ext = path.extname(fileName);
+    const baseName = path.basename(fileName, ext);
+    if (!baseName.endsWith('-alt')) {
+        return null;
+    }
+    return baseName.slice(0, -4) + ext;
+};
+
+export const isAccountedAltFile = (fileName, foundFiles) => {
+    const baseFileName = getBaseFileNameFromAlt(fileName);
+    return baseFileName !== null && foundFiles.includes(baseFileName);
+};
+
 const verifyCategoryCovers = (code, themedRounds) => {
     const errors = [];
     const foundFiles = [];
@@ -240,6 +254,7 @@ const verifyMedia = async (code, questions, themedRounds = []) => {
     let allFiles = fs.readdirSync(pathName, { withFileTypes: true });
     allFiles = allFiles.filter((file) => {
         return !foundFiles.includes(file.name)
+            && !isAccountedAltFile(file.name, foundFiles)
             && !file.name.endsWith('.csv')
             && !file.name.endsWith('.js');
     });

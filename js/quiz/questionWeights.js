@@ -1,7 +1,15 @@
 export const DEFAULT_SELECTION_WEIGHT = 1;
+export const PROBABILITY_MISS_INCREMENT = 10;
 
 export const hasSpecifiedProbability = (question) =>
 	typeof question.probability === 'number' && Number.isFinite(question.probability);
+
+export const getCurrentProbability = (question) => {
+	if (!hasSpecifiedProbability(question)) {
+		return undefined;
+	}
+	return question.currentProbability ?? question.probability;
+};
 
 export const getThemedCategories = (themedRounds = []) =>
 	new Set(themedRounds.map((themedRound) => themedRound.category));
@@ -27,39 +35,53 @@ export const getProbabilityPools = (questions = [], themedRounds = []) => {
 	return pools;
 };
 
-const percentageSum = (questions) =>
-	questions.reduce((sum, question) => sum + question.probability, 0);
+const currentPercentageSum = (questions) =>
+	questions
+		.filter(hasSpecifiedProbability)
+		.reduce((sum, question) => sum + getCurrentProbability(question), 0);
 
 export const assignWeightsForPool = (questions = []) => {
 	questions.forEach((question) => {
-		question.selectionWeight = DEFAULT_SELECTION_WEIGHT;
-		question.weightIncrement = 0;
+		if (!hasSpecifiedProbability(question)) {
+			question.selectionWeight = DEFAULT_SELECTION_WEIGHT;
+			return;
+		}
+		if (typeof question.currentProbability === 'undefined') {
+			question.currentProbability = question.probability;
+		}
 	});
 	const specified = questions.filter(hasSpecifiedProbability);
 	if (!specified.length) {
 		return;
 	}
 	const defaults = questions.filter((question) => !hasSpecifiedProbability(question));
-	const F = percentageSum(specified) / 100;
+	const F = currentPercentageSum(questions) / 100;
 	const D = defaults.length;
 	specified.forEach((question) => {
-		const f = question.probability / 100;
+		const currentProbability = getCurrentProbability(question);
+		const f = currentProbability / 100;
 		if (D === 0) {
-			question.selectionWeight = question.probability;
-			question.weightIncrement = F < 1 ? f / (1 - F) : 1;
+			question.selectionWeight = currentProbability;
 			return;
 		}
 		if (F >= 1) {
-			question.selectionWeight = question.probability;
-			question.weightIncrement = 1;
+			question.selectionWeight = currentProbability;
 			return;
 		}
 		question.selectionWeight = (f * D) / (1 - F);
-		question.weightIncrement = f / (1 - F);
 	});
 };
 
-export const assignPoolWeights = (questions = [], themedRounds = []) => {
+export const assignPoolWeights = (questions = [], themedRounds = [], { resetCurrent = false } = {}) => {
+	if (resetCurrent) {
+		questions.forEach((question) => {
+			if (hasSpecifiedProbability(question)) {
+				question.currentProbability = question.probability;
+			} else {
+				delete question.currentProbability;
+			}
+		});
+	}
 	getProbabilityPools(questions, themedRounds).forEach((pool) => {
 		assignWeightsForPool(pool.questions);
 	});
@@ -75,16 +97,22 @@ export const getQuestionWeight = (question, { themedCategory, themedRounds } = {
 	return question.selectionWeight ?? DEFAULT_SELECTION_WEIGHT;
 };
 
-export const boostUnselectedWeights = (eligibleQuestions, picked, getWeight) => {
+export const boostUnselectedWeights = (eligibleQuestions, picked, { allQuestions, themedRounds } = {}) => {
+	if (!allQuestions?.length) {
+		return;
+	}
+	let boosted = false;
 	eligibleQuestions.forEach((question) => {
-		if (question === picked) {
+		if (question === picked || !hasSpecifiedProbability(question)) {
 			return;
 		}
-		const weight = getWeight(question);
-		if (weight > DEFAULT_SELECTION_WEIGHT) {
-			question.selectionWeight = weight + (question.weightIncrement || 0);
-		}
+		const currentProbability = getCurrentProbability(question);
+		question.currentProbability = Math.min(100, currentProbability + PROBABILITY_MISS_INCREMENT);
+		boosted = true;
 	});
+	if (boosted) {
+		assignPoolWeights(allQuestions, themedRounds);
+	}
 };
 
 export const pickWeightedQuestion = (questions, getWeight, { dontRandomize, random } = {}) => {
@@ -118,6 +146,7 @@ export const getSpecifiedQuestionProbabilities = (eligibleQuestions, getWeight) 
 			id: question.id,
 			configured: question.probability,
 			current: totalWeight > 0 ? (weight / totalWeight) * 100 : 0,
+			currentProbability: getCurrentProbability(question),
 		};
 	});
 };
@@ -137,7 +166,7 @@ export const validateProbabilities = (questions = [], themedRounds = []) => {
 		if (!specified.length) {
 			return;
 		}
-		const percentSum = percentageSum(specified);
+		const percentSum = specified.reduce((sum, question) => sum + question.probability, 0);
 		const defaultCount = pool.questions.length - specified.length;
 		if (percentSum > 100 + 1e-9) {
 			errors.push(`${pool.name}: suma probability (${percentSum}%) przekracza 100%.`);
