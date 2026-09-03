@@ -1,6 +1,7 @@
 import localStorageDB from 'localstoragedb/localstoragedb.js';
 import { Player } from '../model/player.js';
 import { randomizeArray } from './util.js';
+import { applyLogoDefaultUpgrade } from './assets.js';
 
 const tables = {
 	players: 'players',
@@ -14,11 +15,12 @@ const tables = {
 };
 
 let dBase = new localStorageDB('konkursotron', localStorage);
-const version = '3.1.2';
+const version = '3.2.0';
 const migrationVersions = [
 	'3.1.0',
 	'3.1.1',
 	'3.1.2',
+	'3.2.0',
 ];
 
 function createTableIfNotExists(name, fields) {
@@ -125,6 +127,10 @@ function migrateTo312() {
 	dBase.commit();
 }
 
+function migrateTo320() {
+	applyLogoDefaultUpgrade();
+}
+
 function migrate(currentVersion) {
 	migrationVersions.forEach((migrationVersion) => {
 		if (currentVersion >= migrationVersion) {
@@ -133,6 +139,9 @@ function migrate(currentVersion) {
 		switch (migrationVersion) {
 			case '3.1.2':
 				migrateTo312();
+				break;
+			case '3.2.0':
+				migrateTo320();
 				break;
 			default:
 		}

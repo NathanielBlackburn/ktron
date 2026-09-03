@@ -100,8 +100,13 @@ export const QuizEngine = {
 		return undefined;
 	},
 
-	quizHasMcNotes() {
-		return (this.questions || []).some((question) => typeof question.mcNotes === 'string' && question.mcNotes.trim() !== '');
+	getQuizmasterNotes(question) {
+		const raw = question?.quizmasterNotes;
+		return typeof raw === 'string' ? raw.trim() : '';
+	},
+
+	quizHasQuizmasterNotes() {
+		return (this.questions || []).some((question) => this.getQuizmasterNotes(question) !== '');
 	},
 
 	getRandomNumber(topLimit) {
@@ -169,6 +174,10 @@ export const QuizEngine = {
 			return 0;
 		}
 		return Math.floor((this.questionsLeft() + 1 + this.currentPlayerIndex) / count) - 1;
+	},
+
+	estimatedTotalRounds() {
+		return this.round + Math.max(0, this.roundsLeft());
 	},
 
 	newQuiz(quizCode) {

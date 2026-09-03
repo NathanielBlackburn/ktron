@@ -72,33 +72,65 @@
 				<button id="tools-button" class="btn btn-info" onclick="KTron.View.openToolsPanel()">
 					<i class="bi bi-tools"></i>
 				</button>
-				<div class="container">
-					<div id="media-container">
-						<div id="quiz-info" class="d-none"></div>
-						<div class="quiz-info-line d-none"></div>
-						<div class="quiz-main-logo mg-b-20">
-							<img title="Chris Colorado" id="logo-image" />
-						</div>
-						<div id="cat-text" class="d-none"></div>
-						<div id="question-text" class="d-none"></div>						
-						<div id="audio-container" class="d-none"></div>
-						<div id="movie-container" class="d-none"></div>
-						<div id="image-container" class="d-none"></div>
-						<div id="quiz-text-bottom" class="quiz-info-line d-none"></div>
-					</div>
-					<div class="center" id="main-page-answer-buttons">
-						<button class="btn btn-lg btn-primary" id="quizStart" onclick="KTron.Game.startQuiz()" data-i18n="quiz.start"></button>
-						<button class="btn btn-large btn-primary d-none" id="getAnswer" onclick="KTron.Game.questionAnswered()" data-i18n="quiz.answer"></button>
-						<button class="btn btn-large btn-danger d-none" id="notAnswered" onclick="KTron.Game.answeredIncorrectly()"><i class="bi bi-hand-thumbs-down"></i>0</button>
-					</div>
-					<div class="center" id="main-page-points-buttons">
-						<button class="btn btn-large btn-success d-none" id="buttonHalf" onclick="KTron.Game.answeredCorrectly(0.5)"><i class="bi bi-hand-thumbs-up"></i> 0.5</button>
-						<button class="btn btn-large btn-primary d-none" id="buttonOne" onclick="KTron.Game.answeredCorrectly(1)"><i class="bi bi-hand-thumbs-up"></i> 1</button>
-						<button class="btn btn-large btn-info d-none" id="buttonOneHalf" onclick="KTron.Game.answeredCorrectly(1.5)"><i class="bi bi-hand-thumbs-up"></i> 1.5</button>
-						<button class="btn btn-large btn-warning d-none" id="buttonTwo" onclick="KTron.Game.answeredCorrectly(2)"><i class="bi bi-hand-thumbs-up"></i> 2</button>
-					</div>
-					<div class="center" id="main-page-control-buttons">
-						<button class="btn btn-large btn-danger d-none" id="endQuiz" onclick="KTron.Game.endQuiz()" data-i18n="quiz.end"></button>
+				<div class="container quiz-page-container">
+					<div id="quiz-layout" class="quiz-layout">
+						<aside id="quiz-left-column" class="quiz-left-column">
+							<div id="quiz-info-pills" class="quiz-info-pills d-none">
+								<div class="quiz-info-pill" id="info-quiz-name">
+									<span class="quiz-info-pill-label" data-i18n="quizInfo.title"></span>
+									<strong class="quiz-info-pill-value" id="info-quiz-title-value"></strong>
+								</div>
+								<div class="quiz-info-pill" id="info-quiz-round">
+									<span class="quiz-info-pill-label" data-i18n="quizInfo.round"></span>
+									<strong class="quiz-info-pill-value" id="info-quiz-round-value"></strong>
+								</div>
+								<div class="quiz-info-pill" id="info-quiz-questions-left">
+									<span class="quiz-info-pill-label" data-i18n="quizInfo.remaining"></span>
+									<strong class="quiz-info-pill-value" id="info-quiz-questions-value"></strong>
+								</div>
+								<div class="quiz-info-pill quiz-info-pill--active d-none" id="info-quiz-player">
+									<span class="quiz-info-pill-label" data-i18n="quizInfo.answering"></span>
+									<strong class="quiz-info-pill-value" id="info-quiz-player-value"></strong>
+								</div>
+								<div class="quiz-info-pill quiz-info-pill--overtime d-none" id="info-overtime-names"></div>
+							</div>
+							<div id="points-award-flash" class="points-award-flash hidden" aria-hidden="true"></div>
+							<div id="quiz-controls-pane" class="quiz-controls-pane d-none">
+								<div id="quiz-controls" class="quiz-controls">
+									<div id="main-page-answer-buttons" class="quiz-control-group">
+										<button class="btn btn-lg btn-primary d-none" id="getAnswer" onclick="KTron.Game.questionAnswered()" data-i18n="quiz.answer"></button>
+									</div>
+									<div id="main-page-points-buttons" class="quiz-control-group quiz-control-group--points">
+										<button class="btn btn-lg btn-success d-none" id="buttonHalf" onclick="KTron.Game.answeredCorrectly(0.5)"><i class="bi bi-hand-thumbs-up"></i> 0.5</button>
+										<button class="btn btn-lg btn-info d-none" id="buttonOne" onclick="KTron.Game.answeredCorrectly(1)"><i class="bi bi-hand-thumbs-up"></i> 1</button>
+										<button class="btn btn-lg btn-primary d-none" id="buttonOneHalf" onclick="KTron.Game.answeredCorrectly(1.5)"><i class="bi bi-hand-thumbs-up"></i> 1.5</button>
+										<button class="btn btn-lg btn-warning d-none" id="buttonTwo" onclick="KTron.Game.answeredCorrectly(2)"><i class="bi bi-hand-thumbs-up"></i> 2</button>
+										<button class="btn btn-lg btn-danger d-none quiz-points-incorrect" id="notAnswered" onclick="KTron.Game.answeredIncorrectly()"><i class="bi bi-hand-thumbs-down"></i> 0</button>
+									</div>
+								</div>
+							</div>
+							<div id="quiz-end-pane" class="quiz-end-pane d-none">
+								<button class="btn btn-lg btn-outline-danger" id="endQuiz" disabled onclick="KTron.Game.endQuiz()" data-i18n="quiz.end"></button>
+							</div>
+						</aside>
+						<main id="quiz-stage" class="quiz-stage">
+							<div id="media-container">
+								<div class="quiz-main-logo mg-b-20">
+									<img title="Corto Maltese" id="logo-image" />
+								</div>
+								<div id="cat-text" class="d-none"></div>
+								<div id="cat-image-container" class="d-none"></div>
+								<div id="question-text" class="d-none"></div>
+								<div id="audio-container" class="d-none"></div>
+								<div id="movie-container" class="d-none"></div>
+								<div id="image-container" class="d-none"></div>
+								<div id="quiz-text-bottom" class="quiz-info-line d-none"></div>
+							</div>
+							<div id="quiz-winner" class="quiz-winner d-none"></div>
+							<div class="center" id="main-page-start">
+								<button class="btn btn-lg btn-primary" id="quizStart" onclick="KTron.Game.startQuiz()" data-i18n="quiz.start"></button>
+							</div>
+						</main>
 					</div>
 				</div>				
 			</div>
@@ -222,6 +254,7 @@
 														<option value="totoro" data-i18n="settings.logo.totoro"></option>
 														<option value="szagma" data-i18n="settings.logo.szagma"></option>
 														<option value="colorado" data-i18n="settings.logo.colorado"></option>
+														<option value="corto" data-i18n="settings.logo.corto"></option>
 														<option value="custom" data-i18n="settings.logo.custom"></option>
 													</select>
 												</div>
