@@ -1,13 +1,14 @@
 {
   "name": "konkursotron",
-  "version": "3.1.2",
+  "version": "3.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/postbuild.js",
     "preview": "vite preview",
     "ciamk": "node tools/ciamk.js",
-    "test": "node --experimental-test-module-mocks test/overtime/overtimeTests.js && node --experimental-test-module-mocks test/quiz/themedRoundsTests.js && node --experimental-test-module-mocks test/quiz/mcNotesTests.js && node test/quiz/quizKeybindingsTests.js && node --experimental-test-module-mocks test/quiz/probabilityTests.js && node --experimental-test-module-mocks test/ciamk/verifyMediaTests.js"
+    "migrate-quiz-files": "node tools/migrateQuizFiles.js",
+    "test": "node --experimental-test-module-mocks test/overtime/overtimeTests.js && node --experimental-test-module-mocks test/quiz/themedRoundsTests.js && node --experimental-test-module-mocks test/quiz/quizmasterTests.js && node test/quiz/quizKeybindingsTests.js && node --experimental-test-module-mocks test/quiz/probabilityTests.js && node --experimental-test-module-mocks test/ciamk/verifyMediaTests.js && node --experimental-test-module-mocks test/ciamk/mediaTimeTests.js && node --experimental-test-module-mocks test/ciamk/mediaCountModeTests.js && node test/ciamk/categoryImageTests.js"
   },
   "devDependencies": {
     "vite": "^6.3.5"

@@ -3,8 +3,29 @@ const isButtonVisible = (document, id) => {
 	return el && !el.classList.contains('d-none');
 };
 
-export const handleQuizKeyup = (event, { document, isGameInProgress, actions }) => {
+export const isQuizInputBlockedByOverlay = (document, view) =>
+	view.isThemedRoundAnnouncementVisible(document) || view.isCinemaLightsOut(document);
+
+export const handleOverlayDismissKeyup = (event, { document, view }) => {
+	if (event.code !== 'Escape') {
+		return false;
+	}
+	if (view.isThemedRoundAnnouncementVisible(document)) {
+		view.dismissThemedRoundAnnouncement(document);
+		return true;
+	}
+	if (view.isCinemaLightsOut(document)) {
+		view.lightSwitch(document);
+		return true;
+	}
+	return false;
+};
+
+export const handleQuizKeyup = (event, { document, isGameInProgress, actions, view }) => {
 	if (event.target.matches('input, textarea, select')) {
+		return false;
+	}
+	if (view && isQuizInputBlockedByOverlay(document, view)) {
 		return false;
 	}
 	if (!isGameInProgress() || !actions) {
@@ -23,6 +44,14 @@ export const handleQuizKeyup = (event, { document, isGameInProgress, actions }) 
 		}
 		if (key === '1' && isButtonVisible(document, 'buttonOne')) {
 			actions.answeredCorrectly(1);
+			return true;
+		}
+		if (key === 'h' && isButtonVisible(document, 'buttonHalf')) {
+			actions.answeredCorrectly(0.5);
+			return true;
+		}
+		if (key === 'f' && isButtonVisible(document, 'buttonOneHalf')) {
+			actions.answeredCorrectly(1.5);
 			return true;
 		}
 		if (key === '2' && isButtonVisible(document, 'buttonTwo')) {

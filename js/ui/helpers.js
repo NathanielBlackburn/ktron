@@ -15,6 +15,13 @@ export const formatOvertimePoints = (points) => {
 	return (points > 0) ? `(+${points})` : '';
 };
 
+export const formatPointsAwardText = (points) => {
+	if (points === 0) {
+		return '0';
+	}
+	return `+${points}`;
+};
+
 export const showToast = (text, type = 'info') => {
 	const toast = jQuery('#quiz-toast').get(0);
 	jQuery('#quiz-toast div.toast-body').text(text);

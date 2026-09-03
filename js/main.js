@@ -19,6 +19,9 @@ window.KTron = {
 	Loader,
 	View: publicMethods(View, [
 		'lightSwitch',
+		'isCinemaLightsOut',
+		'isThemedRoundAnnouncementVisible',
+		'dismissThemedRoundAnnouncement',
 		'togglePointsModal',
 		'openToolsPanel',
 		'showQuizPanel',

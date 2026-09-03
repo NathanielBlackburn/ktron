@@ -1,6 +1,6 @@
 export const Assets = {
 	defaults: {
-		LOGO_IMAGE: 'colorado',
+		LOGO_IMAGE: 'corto',
 		VICTORY_IMAGE: 'victory_image_default',
 		VICTORY_FANFARE: 'victory_fanfare_default',
 	},

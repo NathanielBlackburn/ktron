@@ -5,7 +5,7 @@ import { Loader } from '../core/config.js';
 import { I18n } from '../core/i18n.js';
 import { error, showToast } from '../ui/helpers.js';
 import { View } from '../ui/ui.js';
-import { McNotesPopup } from '../ui/mcNotesPopup.js';
+import { QuizmasterPopup } from '../ui/quizmasterPopup.js';
 import { QuizEngine } from '../quiz/quizEngine.js';
 
 export const Game = {
@@ -39,7 +39,7 @@ export const Game = {
 		View.updateQuizInfo();
 		View.showEl('#getAnswer');
 		View.showEndQuizButton();
-		McNotesPopup.start();
+		QuizmasterPopup.start();
 	},
 
 	startGameProgress(quizCode) {
@@ -48,7 +48,7 @@ export const Game = {
 		View.showQuizChrome();
 		View.createPointsModal();
 		Game.nextQuestion();
-		McNotesPopup.start();
+		QuizmasterPopup.start();
 	},
 
 	nextQuestion() {
@@ -80,22 +80,26 @@ export const Game = {
 
 	questionAnswered() {
 		View.hideEl('#getAnswer');
-		View.hideEl('#endQuiz');
+		View.setEndQuizEnabled(false);
 		View.togglePointButtons();
 		View.showAnswer(QuizEngine.currentQuestion);
+		View.lockQuizControls();
 	},
 
 	answeredCorrectly(points = 1) {
+		View.showPointsAward(points);
 		QuizEngine.applyCorrectAnswer(points);
 		Game.endTurn();
 	},
 
 	answeredIncorrectly() {
+		View.showPointsAward(0);
 		QuizEngine.applyIncorrectAnswer();
 		Game.endTurn();
 	},
 
 	endTurn() {
+		View.lockQuizControls();
 		View.togglePointButtons(false);
 		const turnResult = QuizEngine.processEndOfTurn();
 		if (turnResult.endQuiz) {
@@ -123,13 +127,14 @@ export const Game = {
 			View.hideEl('#audio-container');
 			View.hideEl('#question-text');
 			View.hideEl('#cat-text');
-			View.hideEl('#endQuiz');
+			View.hideEl('#cat-image-container');
+			View.setEndQuizEnabled(false);
 			View.hideEl('#getAnswer');
 			View.togglePointButtons(false);
 
 			const outcome = QuizEngine.computeEndGameOutcome(automatic, places);
 			if (outcome.showWinner) {
-				McNotesPopup.stop();
+				QuizmasterPopup.stop();
 				DB.endQuiz();
 				View.showWinner(outcome.showWinner);
 				View.updatePointsModal(false);

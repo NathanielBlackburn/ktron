@@ -114,6 +114,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 
 # Dodawanie nowego konkursu
 1. W arkuszu Excela, z którego zrobiony będzie konkurs, należy użyć nagłówków kolumn:
+    * `id` *(wymagana przy liczeniu według id — domyślnie)* - numer/identyfikator pytania używany do dopasowania plików multimedialnych (`001.png`, `042a.mp3` itd.). W Ustawieniach Ciamka można przełączyć liczenie na numer wiersza; wtedy kolumna `id` nie jest wymagana i pliki szukane są po numerze wiersza (1. wiersz danych → `001`, itd.).
     * `question` - tekst pytania,
     * `questionType` - typ pytania:
         * puste - tylko tekst,
@@ -123,11 +124,14 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
     * `answer` - tekst odpowiedzi,
     * `answerType` - typ odpowiedzi (takie same typy, jak w `questionType`, w tym pusty).
     * `category` *(opcjonalna)* - kategoria pytania, wyświetlana podczas konkursu; wymagana dla pytań używanych w rundach tematycznych,
+    * `categoryImage` *(opcjonalna)* - nazwa pliku grafiki kategorii (np. `literatura.png`) z `pytania/{kodKonkursu}/`; jeśli podana, zamiast tekstowej kategorii nad pytaniem wyświetlany jest ten obrazek (nad tekstem i mediami pytania),
     * `categoryCover` *(opcjonalna)* - nazwa pliku grafiki okładki kategorii (np. `literatura.png`); jeśli przynajmniej jedno pytanie w kategorii ma niepuste `categoryCover`, przy ogłoszeniu rundy tematycznej pod tytułem wyświetlana jest grafika z `pytania/{kodKonkursu}/{categoryCover}`. Przy wielu okładkach dla tej samej kategorii brana jest pierwsza napotkana.
-    * `mcNotes` *(opcjonalna)* - notatki prowadzącego do pytania; jeśli przynajmniej jedno pytanie ma niepuste `mcNotes`, przy starcie konkursu otwiera się osobne okno z notatkami bieżącego pytania. Okno aktualizuje się przy każdym nowym pytaniu, można je zamknąć w dowolnym momencie i otworzyć ponownie skrótem Shift+N.
+    * `quizmasterNotes` *(opcjonalna)* - notatki prowadzącego do pytania; jeśli przynajmniej jedno pytanie ma niepuste `quizmasterNotes`, przy starcie konkursu otwiera się osobne okno Quizmaster z notatkami bieżącego pytania. Okno aktualizuje się przy każdym nowym pytaniu, można je zamknąć w dowolnym momencie i otworzyć ponownie skrótem Shift+M.
     * `probability` *(opcjonalna)* - szansa wylosowania pytania w procentach w ramach puli. Puste / brak kolumny = waga 1 (równa szansa z innymi pytaniami o wadze 1). Np. przy 10 pytaniach w puli wartość `60` oznacza 60% w pierwszym losowaniu; jeśli pytanie o wadze > 1 nie zostanie wylosowane, jego waga rośnie w kolejnych losowaniach. Pytania z kategorii rundy tematycznej są ważone tylko w tej rundzie; pytania, które nigdy nie wejdą do rundy tematycznej, są ważone względem pozostałych pytań spoza rund tematycznych. Po rundach tematycznych niewykorzystane pytania z tych kategorii wracają do zwykłej puli z wagą 1.
+    * `questionTime` *(opcjonalna)* - czas startu pliku audio/wideo pytania w formacie `mm:ss` (np. `1:30` = 90 sekund). Po załadowaniu elementu odtwarzacz ustawia się na ten moment.
+    * `answerTime` *(opcjonalna)* - jak `questionTime`, ale dla pliku audio/wideo odpowiedzi.
     * `themedRound` *(opcjonalna)* - konfiguracja rund tematycznych; wpisz w wierszu pytania z kategorią, której pytania mają wejść do rundy. Format: `numer:nazwa`, wiele rund oddziel średnikiem, np. `5:arthistory` lub `3:geo;7:geo`. `nazwa` jest wewnętrznym identyfikatorem rundy (może różnić się od `category`); pytania do rundy są brane z kategorii tego wiersza, a ogłoszenie rundy tematycznej pokazuje nazwę kategorii. Pytania z kategorii używanych w rundach tematycznych nie trafiają do losowania w zwykłych rundach, dopóki wszystkie rundy tematyczne z tą kategorią się nie skończą — wtedy niewykorzystane pytania z tej kategorii wracają do zwykłego losowania. Ciamk wymaga co najmniej 10 pytań w danej kategorii na każdą rundę tematyczną z tą kategorią (np. dwie rundy z kategorią „Geografia” wymagają ≥ 20 pytań w tej kategorii).
-    * Nie trzeba już podawać dokładnego typu pliku (np. png, webp, mp3), Ciamk znajdzie sobie co trzeba. Dodatkowo, kolumna `id` / `Numer pytania` jest już zbędna i nie jest aplikacji potrzebna, ale można ją zostawić, jeśli jest pomocna przy organizacji plików. Najważniejsze, by w pierwszym wierszu Excela pojawiły się cztery powyższe nagłówki.
+    * Nie trzeba już podawać dokładnego typu pliku (np. png, webp, mp3), Ciamk znajdzie sobie co trzeba. Domyślnie pliki dopasowywane są po kolumnie `id`; w menu **4 - Ustawienia** można przełączyć na liczenie według numeru wiersza.
     * przykładowy arkusz: https://docs.google.com/spreadsheets/d/1OTYyNwZ1PTgXWi3H8HpvafYv8vVgnxsK3YvVihaMRR0
 2. W katalogu `pytania` utworzyć podkatalog z dowolną nazwą - najlepiej bez spacji, polskich znaków i znaków specjalnych, byle nazwa była unikatowa (w ramach katalogu `pytania`) i dawała jakieś pojęcie, jaki konkurs jest w środku. Na potrzeby instrukcji załóżmy, że ten katalog to `konkursidlo`.
 3. Do katalogu `pytania/konkursidlo` wrzucić wszystkie pliki multimedialne.
@@ -141,9 +145,17 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 10. Jeśli dodawanie się powiedzie, Ciamk zapyta o imię/nick autora konkursu oraz tytuł. Te dane będą się wyświetlać w Konkursotronie.
 11. Jeśli w czymkolwiek się pomyliliśmy, opcja 2 po uruchomieniu Ciamka ("Usuń konkurs z listy") pozwala bezproblemowo usunąć konkurs i można go dodać jeszcze raz opcją 1.
 
+# Aktualizacja z wersji 3.1.x do 3.2
+
+Po aktualizacji kodu aplikacji uruchom:
+
+`npm run migrate-quiz-files`
+
+Skrypt przepisuje `js/quizFiles.js` ze starego formatu (`const ktronQuizFiles = […]`) na wymagany w 3.2 (`window.ktronQuizFiles = […]`). Jeśli plik jest już w nowym formacie, skrypt nic nie zmienia.
+
 # Konfiguracja własna wyglądu
 
-Od wersji 3.1 (Chris Colorado) dostępnych jest kilka opcji konfigurowania wyglądu:
+Od wersji 3.2 (Corto Maltese) dostępnych jest kilka opcji konfigurowania wyglądu:
 
 * W ustawieniach znajduje się pole wyboru pozwalające zmienić logo aplikacji. Dostępne są wszystkie poprzednie logówki oraz aktualny + opcja "Własne". Ta ostatnia wymaga wrzucenia do katalogu `res/custom` pliku `logo.png`. Jeśli spróbujemy ją włączyć, a pliku w katalogu nie będzie, aplikacja wróci do aktualnego logo danej wersji.
 * W ustawieniach znajdują się też checkboxy dla ekranu zwycięzców: "Własny obrazek" (zamiast domyślnego z Nicolasem Cage'em) i "Własne mp3" (zamiast domyślnej fanfary z Final Fantasy). Aby z nich skorzystać, należy zaznaczyć daną opcję i do katalogu `res/custom` wrzucić własny obrazek `victory.png` i/lub własną mp3 `fanfare.mp3`. Jeśli na koniec konkursu nie zostaną one znalezione w katalogu, użyte zostaną domyślne.

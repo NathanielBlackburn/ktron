@@ -5,9 +5,9 @@ import { QuizEngine } from '../quiz/quizEngine.js';
 import { I18n, i18nReady, initI18n } from '../core/i18n.js';
 import { showToast } from '../ui/helpers.js';
 import { View } from '../ui/ui.js';
-import { McNotesPopup } from '../ui/mcNotesPopup.js';
+import { QuizmasterPopup } from '../ui/quizmasterPopup.js';
 import { Game } from './game.js';
-import { handleQuizKeyup } from './quizKeybindings.js';
+import { handleOverlayDismissKeyup, handleQuizKeyup, isQuizInputBlockedByOverlay } from './quizKeybindings.js';
 
 const finishQuizLoading = () => {
 	Loader.quizzesReady = true;
@@ -89,6 +89,9 @@ export const App = {
 			if (event.target.matches('input, textarea, select')) {
 				return;
 			}
+			if (isQuizInputBlockedByOverlay(window.document, View)) {
+				return;
+			}
 			if (event.key === 't' && QuizEngine.gameInProgress) {
 				View.setShownImageAlt(true);
 			}
@@ -97,13 +100,19 @@ export const App = {
 			if (event.target.matches('input, textarea, select')) {
 				return;
 			}
+			if (handleOverlayDismissKeyup(event, { document: window.document, view: View })) {
+				return;
+			}
+			if (isQuizInputBlockedByOverlay(window.document, View)) {
+				return;
+			}
 			if (event.key === 't' && QuizEngine.gameInProgress) {
 				View.setShownImageAlt(false);
 			}
 			if (event.shiftKey && event.code == 'KeyP' && QuizEngine.gameInProgress) {
 				View.togglePointsModal();
-			} else if (event.shiftKey && event.code == 'KeyN' && QuizEngine.gameInProgress) {
-				McNotesPopup.open();
+			} else if (event.shiftKey && event.code == 'KeyM' && QuizEngine.gameInProgress) {
+				QuizmasterPopup.open();
 			} else if (event.shiftKey && event.altKey && event.code == 'KeyQ') {
 				if (confirm(I18n.t('confirm.easterEgg'))) {
 					DB.purge();
@@ -113,6 +122,7 @@ export const App = {
 					document: window.document,
 					isGameInProgress: () => QuizEngine.gameInProgress,
 					actions: Game,
+					view: View,
 				});
 			}
 		});
@@ -177,7 +187,7 @@ const init = () => {
 	});
 	jQuery('button.btn-close[data-slide="up-modal"]').on('click', function () {
 		View.toggleSlide(jQuery(this).parent()[0], false);
-		View.lightSwitch('#cinema-fade-modal');
+		View.lightSwitch();
 	});
 	jQuery('#player-add-form').on('submit', (event) => {
 		event.preventDefault();

@@ -1,4 +1,4 @@
-const CIAMK_VERSION = '1.3.3';
+const CIAMK_VERSION = '1.4.0';
 
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
@@ -15,12 +15,46 @@ const MEDIATYPES = {
     video: ['mp4', 'webm']
 };
 
+export const COUNT_BY = {
+    ID: 'id',
+    ROW: 'row',
+};
+
+/** Runtime setting: how media filenames are matched. Default: by CSV id. */
+let mediaCountMode = COUNT_BY.ID;
+
+export const getMediaCountMode = () => mediaCountMode;
+
+export const toggleMediaCountMode = () => {
+    mediaCountMode = mediaCountMode === COUNT_BY.ID ? COUNT_BY.ROW : COUNT_BY.ID;
+    return mediaCountMode;
+};
+
+export const getMediaCountModeLabel = (mode = mediaCountMode) =>
+    mode === COUNT_BY.ID ? 'id' : 'numer wiersza';
+
 const padId = (id) => {
     let result = id;
     while (!/^\d{3}/.test(result)) {
         result = '0' + result;
     }
     return result;
+};
+
+/**
+ * Resolve question media id from CSV row.
+ * - by id: uses required `id` column (padded)
+ * - by row: uses 1-based row index (padded), as historically
+ */
+export const resolveQuestionId = (rec, index, countMode = mediaCountMode, errors = []) => {
+    if (countMode === COUNT_BY.ID) {
+        if (typeof rec.id === 'undefined' || !String(rec.id).trim()) {
+            errors.push(`Wiersz ${index + 1}: brak wymaganej wartości w kolumnie id (tryb liczenia według id).`);
+            return null;
+        }
+        return padId(String(rec.id).trim());
+    }
+    return padId((index + 1).toString());
 };
 
 const range = (start, length) => {
@@ -202,6 +236,23 @@ const verifyCategoryCovers = (code, themedRounds) => {
     return { errors, foundFiles };
 };
 
+const verifyCategoryImages = (code, questions) => {
+    const errors = [];
+    const foundFiles = [];
+    (questions || []).forEach((question) => {
+        if (!question.categoryImage) {
+            return;
+        }
+        const filePath = path.join(`./pytania/${code}`, question.categoryImage);
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+            errors.push(`Brak pliku categoryImage dla pytania ${question.id}: ${question.categoryImage}`);
+            return;
+        }
+        foundFiles.push(path.basename(filePath));
+    });
+    return { errors, foundFiles };
+};
+
 const verifyMedia = async (code, questions, themedRounds = []) => {
     const pathName = `./pytania/${code}`;
     let errors = [];
@@ -251,6 +302,9 @@ const verifyMedia = async (code, questions, themedRounds = []) => {
     const coverVerification = verifyCategoryCovers(code, themedRounds);
     errors = errors.concat(coverVerification.errors);
     foundFiles = foundFiles.concat(coverVerification.foundFiles);
+    const categoryImageVerification = verifyCategoryImages(code, questions);
+    errors = errors.concat(categoryImageVerification.errors);
+    foundFiles = foundFiles.concat(categoryImageVerification.foundFiles);
     let allFiles = fs.readdirSync(pathName, { withFileTypes: true });
     allFiles = allFiles.filter((file) => {
         return !foundFiles.includes(file.name)
@@ -270,15 +324,56 @@ const verifyMedia = async (code, questions, themedRounds = []) => {
     }
 };
 
-const checkCSVColumns = (rec) => {
+const checkCSVColumns = (rec, countMode = mediaCountMode) => {
     const fields = ['question', 'questionType', 'answer', 'answerType'];
+    if (countMode === COUNT_BY.ID) {
+        fields.push('id');
+    }
     return fields.every((field) => typeof rec[field] !== 'undefined');
 };
 
-export const applyMcNotesFromRecord = (question, rec) => {
-    if (typeof rec.mcNotes !== 'undefined' && rec.mcNotes.trim()) {
-        question.mcNotes = rec.mcNotes.trim();
+export const applyQuizmasterNotesFromRecord = (question, rec) => {
+    const notes = rec.quizmasterNotes;
+    if (typeof notes !== 'undefined' && notes.trim()) {
+        question.quizmasterNotes = notes.trim();
     }
+    return question;
+};
+
+export const applyCategoryImageFromRecord = (question, rec) => {
+    const categoryImage = rec.categoryImage;
+    if (typeof categoryImage !== 'undefined' && categoryImage.trim()) {
+        question.categoryImage = categoryImage.trim();
+    }
+    return question;
+};
+
+/** Parse mm:ss (or m:ss) into total seconds. Returns null if invalid. */
+export const parseMediaTime = (raw) => {
+    const value = String(raw).trim();
+    const match = value.match(/^(\d+):([0-5]?\d)$/);
+    if (!match) {
+        return null;
+    }
+    return (Number(match[1]) * 60) + Number(match[2]);
+};
+
+const applyMediaTimeField = (question, rec, field, errors = []) => {
+    if (typeof rec[field] === 'undefined' || !String(rec[field]).trim()) {
+        return;
+    }
+    const raw = String(rec[field]).trim();
+    const seconds = parseMediaTime(raw);
+    if (seconds === null) {
+        errors.push(`Pytanie ${question.id}: niepoprawna wartość ${field} ("${raw}"). Oczekiwany format mm:ss.`);
+        return;
+    }
+    question[field] = seconds;
+};
+
+export const applyMediaTimesFromRecord = (question, rec, errors = []) => {
+    applyMediaTimeField(question, rec, 'questionTime', errors);
+    applyMediaTimeField(question, rec, 'answerTime', errors);
     return question;
 };
 
@@ -553,12 +648,21 @@ const importNewQuiz = async (rl) => {
                         // TODO: Handle the [spoiler] prefix
                         const multipleChoiceErrors = [];
                         const probabilityErrors = [];
+                        const mediaTimeErrors = [];
+                        const idErrors = [];
                         records.forEach((rec, index) => {
                             if (!checkCSVColumns(rec)) {
-                                throw new Error('Niepoprawne nagłówki kolumn w pliku csv.');
+                                const idHint = mediaCountMode === COUNT_BY.ID
+                                    ? ' W trybie liczenia według id wymagana jest też kolumna id.'
+                                    : '';
+                                throw new Error(`Niepoprawne nagłówki kolumn w pliku csv.${idHint}`);
+                            }
+                            const questionId = resolveQuestionId(rec, index, mediaCountMode, idErrors);
+                            if (!questionId) {
+                                return;
                             }
                             let question = {
-                                id: padId((index + 1).toString()),
+                                id: questionId,
                                 questionText: rec.question.trim(),
                                 questionType: rec.questionType.trim(),
                                 answerText: rec.answer.trim(),
@@ -568,11 +672,17 @@ const importNewQuiz = async (rl) => {
                             if (typeof rec.category !== 'undefined' && rec.category.trim()) {
                                 question['category'] = rec.category.trim();
                             }
-                            question = applyMcNotesFromRecord(question, rec);
+                            question = applyCategoryImageFromRecord(question, rec);
+                            question = applyQuizmasterNotesFromRecord(question, rec);
                             question = applyProbabilityFromRecord(question, rec, probabilityErrors);
+                            question = applyMediaTimesFromRecord(question, rec, mediaTimeErrors);
                             question = transformMultipleChoiceQuestion(question, multipleChoiceErrors);
                             json.questions.push(question);
                         });
+                        if (idErrors.length) {
+                            logs = logs.concat(idErrors);
+                            throw new Error('Błędy w kolumnie id.');
+                        }
                         const { themedRounds: parsedThemedRounds, errors: themedRoundParseErrors } = parseThemedRoundsFromRecords(records);
                         const { categoryCovers, errors: categoryCoverErrors } = parseCategoryCoversFromRecords(records);
                         const themedRounds = applyCategoryCoversToThemedRounds(parsedThemedRounds, categoryCovers);
@@ -591,6 +701,10 @@ const importNewQuiz = async (rl) => {
                         if (probabilityErrors.length || probabilityValidationErrors.length) {
                             logs = logs.concat(probabilityErrors).concat(probabilityValidationErrors);
                             throw new Error('Błędy w kolumnie probability.');
+                        }
+                        if (mediaTimeErrors.length) {
+                            logs = logs.concat(mediaTimeErrors);
+                            throw new Error('Błędy w kolumnach questionTime / answerTime.');
                         }
                         const verificationResult = await verifyMedia(code, json.questions, themedRounds);
                         if (multipleChoiceErrors.length) {
@@ -633,6 +747,20 @@ KTron.Loader.quizzes.push(${jsonString});
     printLogs(logs);
 };
 
+const openSettings = async (rl) => {
+    let answer = '';
+    while (answer.toLowerCase() !== 'q') {
+        console.clear();
+        console.warn('\nUstawienia Ciamka');
+        console.info(`1 - Liczenie plików: ${getMediaCountModeLabel()} (przełącz)`);
+        console.info('q - Powrót\n');
+        answer = (await rl.question('> ')).trim();
+        if (answer === '1') {
+            toggleMediaCountMode();
+        }
+    }
+};
+
 const runCli = async () => {
     const rl = readline.createInterface({
         input: process.stdin,
@@ -645,6 +773,7 @@ const runCli = async () => {
         console.info('1 - Dodaj nowy konkurs');
         console.info('2 - Usuń konkurs z listy');
         console.info('3 - Migruj istniejące konkursy z wersji 2.x');
+        console.info(`4 - Ustawienia (liczenie: ${getMediaCountModeLabel()})`);
         console.info('q - Wyjście\n');
         answer = (await rl.question('> ')).trim();
         switch (answer.toLowerCase()) {
@@ -658,6 +787,10 @@ const runCli = async () => {
                 break;
             case '3':
                 await migrateOldQuizes(rl);
+                break;
+            case '4':
+                await openSettings(rl);
+                console.clear();
                 break;
             case 'q':
                 rl.close();
