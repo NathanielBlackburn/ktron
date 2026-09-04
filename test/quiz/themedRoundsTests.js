@@ -180,7 +180,6 @@ mock.module(fileURLToPath(new URL('../../js/core/config.js', import.meta.url)), 
 	namedExports: {
 		Loader: {
 			config: {
-				dontRandomize: true,
 				debugMode: false,
 			},
 			quizzes: [],
@@ -205,6 +204,7 @@ mock.module(fileURLToPath(new URL('../../js/core/i18n.js', import.meta.url)), {
 });
 
 const { QuizEngine } = await import('../../js/quiz/quizEngine.js');
+QuizEngine.dontRandomize = true;
 
 console.log('Case 1: Regular round excludes themed-category questions.');
 
@@ -259,6 +259,7 @@ console.log('Case 3: Themed round picks from themed pool and announces the categ
 	console.assert(result.themedRoundToast?.name === 'arthistory', 'Themed round toast should include internal name.');
 	console.assert(result.themedRoundToast?.category === 'Historia sztuki', 'Themed round toast should include question category for announcement.');
 	console.assert(result.themedRoundToast?.cover === 'art.png', 'Themed round toast should include category cover.');
+	console.assert(result.themedRoundToast?.coverAlt === undefined, 'Themed round toast should omit coverAlt when none is configured.');
 }
 
 console.log('Case 3b: Themed round toast omits cover when none is configured.');
@@ -278,7 +279,25 @@ console.log('Case 3b: Themed round toast omits cover when none is configured.');
 	console.assert(result.themedRoundToast?.cover === undefined, 'Themed round toast should omit cover when not configured.');
 }
 
-console.log('Case 4: After all themed rounds for a category, leftovers re-enter the normal pool.');
+console.log('Case 3c: Themed round toast includes coverAlt when configured.');
+
+{
+	QuizEngine.round = 5;
+	QuizEngine.currentPlayerIndex = 0;
+	QuizEngine.players = [
+		{ ID: 1, name: 'Player 1', isActive: true, isRemoved: false },
+	];
+	QuizEngine.themedRounds = [{ round: 5, name: 'arthistory', category: 'Historia sztuki', cover: 'art.png', coverAlt: 'art-alt.webp' }];
+	QuizEngine.questions = [
+		makeQuestion('001', 'Historia sztuki'),
+		makeQuestion('002', 'Geografia'),
+	];
+	const result = QuizEngine.pickNextQuestion();
+	console.assert(result.themedRoundToast?.cover === 'art.png', 'Themed round toast should still include the regular cover.');
+	console.assert(result.themedRoundToast?.coverAlt === 'art-alt.webp', 'Themed round toast should include coverAlt when configured.');
+}
+
+console.log('Case 4: After all themed rounds for a category, leftovers wait until the non-thematic pool is empty.');
 
 {
 	QuizEngine.round = 6;
@@ -289,8 +308,10 @@ console.log('Case 4: After all themed rounds for a category, leftovers re-enter 
 		makeQuestion('003'),
 	];
 	const eligible = QuizEngine.getEligibleQuestions(QuizEngine.questions, undefined);
-	console.assert(eligible.length === 3, 'After themed round, leftover themed-category questions should be eligible.');
-	console.assert(eligible.some((question) => question.id === '001'), 'Leftover themed-category questions should re-enter normal pool.');
+	console.assert(eligible.length === 2, 'While non-thematic questions remain, leftover themed questions should not be drawn.');
+	console.assert(eligible.some((question) => question.id === '002'), 'Non-themed categories should still be eligible.');
+	console.assert(eligible.some((question) => question.id === '003'), 'Uncategorized questions should still be eligible.');
+	console.assert(!eligible.some((question) => question.id === '001'), 'Leftover themed-category questions should wait until the non-thematic pool is drained.');
 }
 
 console.log('Case 5: Category stays reserved while a later themed round for it remains.');
@@ -311,7 +332,7 @@ console.log('Case 5: Category stays reserved while a later themed round for it r
 	console.assert(!eligible.some((question) => question.id === '001'), 'Geografia should stay reserved until round 7 is over.');
 }
 
-console.log('Case 6: After the last themed round for a repeated category, leftovers unlock.');
+console.log('Case 6: After the last themed round for a repeated category, leftovers stay behind non-thematic questions.');
 
 {
 	QuizEngine.round = 8;
@@ -326,8 +347,9 @@ console.log('Case 6: After the last themed round for a repeated category, leftov
 		makeQuestion('003', 'Historia'),
 	];
 	const eligible = QuizEngine.getEligibleQuestions(QuizEngine.questions, undefined);
-	console.assert(eligible.length === 3, 'After last themed rounds, all leftover categories should unlock.');
-	console.assert(eligible.every((question) => ['001', '002', '003'].includes(question.id)), 'Geografia and Literatura leftovers should be eligible after their themed rounds.');
+	console.assert(eligible.length === 1, 'After last themed rounds, leftover themed questions should wait behind non-thematic ones.');
+	console.assert(eligible[0].id === '003', 'Only the non-thematic category should be drawn while it still has unused questions.');
+	console.assert(!eligible.some((question) => question.id === '001' || question.id === '002'), 'Geografia and Literatura leftovers should not mix into the non-thematic pool yet.');
 }
 
 console.log('Case 7: Later themed round of the same category never reuses questions from an earlier themed round.');
@@ -370,6 +392,31 @@ console.log('Case 7: Later themed round of the same category never reuses questi
 	const secondPick = QuizEngine.pickNextQuestion();
 	console.assert(secondPick.question.id !== usedId, 'Second themed round must not pick a previously used category question.');
 	console.assert(secondPick.question.category === 'Geografia', 'Second themed round should still pick from Geografia.');
+}
+
+console.log('Case 8: Leftover themed questions are drawn only after the non-thematic pool is empty.');
+
+{
+	QuizEngine.round = 6;
+	QuizEngine.currentPlayerIndex = 0;
+	QuizEngine.players = [
+		{ ID: 1, name: 'Player 1', isActive: true, isRemoved: false },
+	];
+	QuizEngine.themedRounds = [{ round: 5, name: 'literature', category: 'Literatura' }];
+	QuizEngine.questions = [
+		makeQuestion('001', 'Literatura'),
+		makeQuestion('002', 'Geografia'),
+	];
+	const firstPick = QuizEngine.pickNextQuestion();
+	console.assert(firstPick.question.id === '002', 'Non-thematic questions should be drawn before leftover themed questions.');
+	QuizEngine.currentPlayerIndex = 0;
+	const leftoverEligible = QuizEngine.getEligibleQuestions(
+		QuizEngine.questions.filter((question) => !question.used),
+		undefined,
+	);
+	console.assert(leftoverEligible.length === 1 && leftoverEligible[0].id === '001', 'After the non-thematic pool is drained, leftover themed questions should become eligible.');
+	const secondPick = QuizEngine.pickNextQuestion();
+	console.assert(secondPick.question.id === '001', 'Leftover themed questions should be drawn once no non-thematic questions remain.');
 }
 
 console.log('\nAll themed round tests completed.\n');

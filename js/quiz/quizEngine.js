@@ -9,6 +9,7 @@ import {
 	boostUnselectedWeights,
 	getQuestionWeight,
 	getSpecifiedQuestionProbabilities,
+	isThemedPoolQuestion,
 	pickWeightedQuestion,
 } from './questionWeights.js';
 
@@ -16,6 +17,7 @@ export const QuizEngine = {
 	round: 1,
 	code: undefined,
 	themedRounds: [],
+	dontRandomize: false,
 
 	get settings() {
 		return settings;
@@ -100,20 +102,31 @@ export const QuizEngine = {
 		return undefined;
 	},
 
-	getQuizmasterNotes(question) {
-		const raw = question?.quizmasterNotes;
+	getQuestionNotes(question) {
+		const raw = question?.qmQuestionNotes;
+		return typeof raw === 'string' ? raw.trim() : '';
+	},
+
+	getCategoryNotes(question) {
+		const raw = question?.qmCategoryNotes;
 		return typeof raw === 'string' ? raw.trim() : '';
 	},
 
 	quizHasQuizmasterNotes() {
-		return (this.questions || []).some((question) => this.getQuizmasterNotes(question) !== '');
+		return (this.questions || []).some((question) =>
+			this.getQuestionNotes(question) !== '' || this.getCategoryNotes(question) !== '',
+		);
 	},
 
 	getRandomNumber(topLimit) {
-		if (Loader.config.dontRandomize) {
+		if (this.dontRandomize) {
 			return 0;
 		}
 		return Math.floor(Math.random() * topLimit);
+	},
+
+	resetDontRandomize() {
+		this.dontRandomize = false;
 	},
 
 	loadThemedRounds(quiz) {
@@ -130,7 +143,8 @@ export const QuizEngine = {
 
 	/**
 	 * Categories still reserved for upcoming or current themed rounds.
-	 * Once every themed round for a category is past, leftovers re-enter the normal pool.
+	 * Once every themed round for a category is past, leftovers re-enter the normal pool
+	 * only after non-themed questions are exhausted.
 	 */
 	getReservedCategories(round = this.round) {
 		return new Set(
@@ -145,12 +159,17 @@ export const QuizEngine = {
 			return unusedQuestions.filter((question) => question.category === themedCategory);
 		}
 		const reservedCategories = this.getReservedCategories();
-		return unusedQuestions.filter((question) => {
+		const unlocked = unusedQuestions.filter((question) => {
 			if (!question.category) {
 				return true;
 			}
 			return !reservedCategories.has(question.category);
 		});
+		const nonThematic = unlocked.filter((question) => !isThemedPoolQuestion(question, this.themedRounds));
+		if (nonThematic.length) {
+			return nonThematic;
+		}
+		return unlocked;
 	},
 
 	createFakeQuestion() {
@@ -181,7 +200,7 @@ export const QuizEngine = {
 	},
 
 	newQuiz(quizCode) {
-		const players = DB.createGame(quizCode);
+		const players = DB.createGame(quizCode, { dontRandomize: this.dontRandomize });
 		this.players = players;
 		this.currentPlayerIndex = 0;
 	},
@@ -268,7 +287,7 @@ export const QuizEngine = {
 		});
 		this.debugCurrentProbabilities(eligibleQuestions, getWeight, themedRoundConfig);
 		const newQuestion = pickWeightedQuestion(eligibleQuestions, getWeight, {
-			dontRandomize: Loader.config.dontRandomize,
+			dontRandomize: this.dontRandomize,
 		});
 		boostUnselectedWeights(eligibleQuestions, newQuestion, {
 			allQuestions: this.questions,
@@ -290,6 +309,9 @@ export const QuizEngine = {
 			};
 			if (themedRoundConfig.cover) {
 				result.themedRoundToast.cover = themedRoundConfig.cover;
+			}
+			if (themedRoundConfig.coverAlt) {
+				result.themedRoundToast.coverAlt = themedRoundConfig.coverAlt;
 			}
 		}
 		return result;
@@ -330,6 +352,7 @@ export const QuizEngine = {
 		}
 
 		if (this.overtime) {
+			const previousLocked = this.overtime.getLockedOccupants();
 			this.overtime.endRound();
 			OvertimeRepository.save(this.overtime);
 			this.debug('Zostało pytań: ', this.questionsLeft());
@@ -343,7 +366,11 @@ export const QuizEngine = {
 				DB.useUpAllRemainingQuestions(this.questions);
 				this.questions.forEach((question) => question.used = true);
 			}
-			return { nextRound: true };
+			const overtimeProgress = this.overtime.describeProgress(previousLocked);
+			return {
+				nextRound: true,
+				overtimeProgress: overtimeProgress.hasNewLocks ? overtimeProgress : undefined,
+			};
 		}
 
 		const endOfRoundResult = this.handleEndOfRound();
@@ -405,15 +432,17 @@ export const QuizEngine = {
 			this.round = DB.fetchLastRound();
 			questionToShow = this.findQuestion(lastQuestion.id_question);
 		}
+		this.dontRandomize = Boolean(game.dontRandomize);
 		this.currentQuestion = questionToShow;
 		return questionToShow;
 	},
 
-	initGameState(quizCode) {
+	initGameState(quizCode, { dontRandomize = false } = {}) {
 		const quiz = Loader.quizzes.find((q) => q.code == quizCode);
 		this.questions = quiz.questions;
 		this.code = quizCode;
 		this.title = quiz.title;
+		this.dontRandomize = Boolean(dontRandomize);
 		this.loadThemedRounds(quiz);
 		this.questions.forEach((question) => {
 			question.used = false;

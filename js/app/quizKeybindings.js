@@ -3,8 +3,22 @@ const isButtonVisible = (document, id) => {
 	return el && !el.classList.contains('d-none');
 };
 
-export const isQuizInputBlockedByOverlay = (document, view) =>
-	view.isThemedRoundAnnouncementVisible(document) || view.isCinemaLightsOut(document);
+const isAltImageToggleKey = (event) => event?.key === 't';
+
+export const handleShownImageAltKey = (event, { isGameInProgress, view, showAlt }) => {
+	if (!isAltImageToggleKey(event) || !isGameInProgress()) {
+		return false;
+	}
+	view.setShownImageAlt(showAlt);
+	return true;
+};
+
+export const isQuizInputBlockedByOverlay = (document, view, event) => {
+	if (view.isThemedRoundAnnouncementVisible(document)) {
+		return !isAltImageToggleKey(event);
+	}
+	return view.isCinemaLightsOut(document);
+};
 
 export const handleOverlayDismissKeyup = (event, { document, view }) => {
 	if (event.code !== 'Escape') {
@@ -25,7 +39,7 @@ export const handleQuizKeyup = (event, { document, isGameInProgress, actions, vi
 	if (event.target.matches('input, textarea, select')) {
 		return false;
 	}
-	if (view && isQuizInputBlockedByOverlay(document, view)) {
+	if (view && isQuizInputBlockedByOverlay(document, view, event)) {
 		return false;
 	}
 	if (!isGameInProgress() || !actions) {

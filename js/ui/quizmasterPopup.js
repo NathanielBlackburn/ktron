@@ -1,7 +1,7 @@
 import { I18n } from '../core/i18n.js';
 import { escapeHTML, renderTags } from '../core/util.js';
 import { QuizEngine } from '../quiz/quizEngine.js';
-import { handleOverlayDismissKeyup, handleQuizKeyup, isQuizInputBlockedByOverlay } from '../app/quizKeybindings.js';
+import { handleOverlayDismissKeyup, handleQuizKeyup, handleShownImageAltKey, isQuizInputBlockedByOverlay } from '../app/quizKeybindings.js';
 import { showToast } from './helpers.js';
 
 const QUIZMASTER_WINDOW_NAME = 'ktron-quizmaster';
@@ -146,6 +146,11 @@ header {
 	color: #8b919c;
 	font-style: italic;
 }
+.quizmaster-question-notes + .quizmaster-category-notes {
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid #2c313a;
+}
 span.blue {
 	color: #7eb6ff;
 }
@@ -176,6 +181,7 @@ export const QuizmasterPopup = {
 	enabled: false,
 	unloadBound: false,
 	keyupHandler: null,
+	keydownHandler: null,
 
 	openWindow(url, name, features) {
 		return window.open(url, name, features);
@@ -256,6 +262,24 @@ export const QuizmasterPopup = {
 			return;
 		}
 		this.unbindQuizKeypress();
+		this.keydownHandler = (event) => {
+			if (event.target.matches('input, textarea, select')) {
+				return;
+			}
+			const mainWindow = getMainKTronWindow();
+			const ktron = mainWindow?.KTron;
+			if (!ktron) {
+				return;
+			}
+			if (isQuizInputBlockedByOverlay(mainWindow.document, ktron.View, event)) {
+				return;
+			}
+			handleShownImageAltKey(event, {
+				isGameInProgress: () => QuizEngine.gameInProgress,
+				view: ktron.View,
+				showAlt: true,
+			});
+		};
 		this.keyupHandler = (event) => {
 			if (event.target.matches('input, textarea, select')) {
 				return;
@@ -268,9 +292,14 @@ export const QuizmasterPopup = {
 			if (handleOverlayDismissKeyup(event, { document: mainWindow.document, view: ktron.View })) {
 				return;
 			}
-			if (isQuizInputBlockedByOverlay(mainWindow.document, ktron.View)) {
+			if (isQuizInputBlockedByOverlay(mainWindow.document, ktron.View, event)) {
 				return;
 			}
+			handleShownImageAltKey(event, {
+				isGameInProgress: () => QuizEngine.gameInProgress,
+				view: ktron.View,
+				showAlt: false,
+			});
 			handleQuizKeyup(event, {
 				document: mainWindow.document,
 				isGameInProgress: () => QuizEngine.gameInProgress,
@@ -278,16 +307,20 @@ export const QuizmasterPopup = {
 				view: ktron.View,
 			});
 		};
+		this.popup.document.addEventListener('keydown', this.keydownHandler);
 		this.popup.document.addEventListener('keyup', this.keyupHandler);
 	},
 
 	unbindQuizKeypress() {
-		if (!this.keyupHandler) {
-			return;
-		}
 		if (this.popup?.document) {
-			this.popup.document.removeEventListener('keyup', this.keyupHandler);
+			if (this.keydownHandler) {
+				this.popup.document.removeEventListener('keydown', this.keydownHandler);
+			}
+			if (this.keyupHandler) {
+				this.popup.document.removeEventListener('keyup', this.keyupHandler);
+			}
 		}
+		this.keydownHandler = null;
 		this.keyupHandler = null;
 	},
 
@@ -367,9 +400,17 @@ ${buildControlsHtml()}
 		if (!body) {
 			return;
 		}
-		const notes = QuizEngine.getQuizmasterNotes(question);
-		if (notes) {
-			body.innerHTML = renderTags(notes);
+		const questionNotes = QuizEngine.getQuestionNotes(question);
+		const categoryNotes = QuizEngine.getCategoryNotes(question);
+		if (questionNotes || categoryNotes) {
+			const parts = [];
+			if (questionNotes) {
+				parts.push(`<div class="quizmaster-question-notes">${renderTags(questionNotes)}</div>`);
+			}
+			if (categoryNotes) {
+				parts.push(`<div class="quizmaster-category-notes">${renderTags(categoryNotes)}</div>`);
+			}
+			body.innerHTML = parts.join('');
 		} else {
 			body.innerHTML = `<p class="quizmaster-empty">${escapeHTML(I18n.t('quizmaster.empty'))}</p>`;
 		}

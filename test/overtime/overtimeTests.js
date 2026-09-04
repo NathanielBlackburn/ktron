@@ -408,3 +408,62 @@ restoredOvertime = Overtime.hydrate(overtimeJSON);
 console.assert(restoredOvertime.equals(overtime), 'Case 2: Restored is not equal to the original.');
 console.assert(restoredOvertime.thirdPlace[0].status == 'fail', `Jarek should be failed, instead his status is: ${restoredOvertime.thirdPlace[0].status}`);
 console.assert(restoredOvertime.firstPlace[1].status == 'pass', `Darek should be passed, instead his status is: ${restoredOvertime.firstPlace[1].status}`);
+
+console.log(padInfo('overtime progress summary tests'));
+
+console.log('Case 1: One player locks first, the other two compete for second.');
+
+{
+	const threeWay = new Overtime(pointsToPlaces([
+		{ID: 1, name: 'Anna', order: 1, points: 4},
+		{ID: 2, name: 'Bartek', order: 2, points: 4},
+		{ID: 3, name: 'Celina', order: 3, points: 4},
+	]));
+	const previous = threeWay.getLockedOccupants();
+	threeWay.markAnswer(1, 'pass');
+	threeWay.markAnswer(2, 'fail');
+	threeWay.markAnswer(3, 'fail');
+	threeWay.endRound();
+	const progress = threeWay.describeProgress(previous);
+	console.assert(progress.hasNewLocks === true, 'A unique first place should count as a new lock.');
+	console.assert(progress.wins.length === 1 && progress.wins[0].place === 1 && progress.wins[0].player.name === 'Anna', 'Anna should lock first place.');
+	console.assert(progress.contests.length === 1 && progress.contests[0].place === 2, 'The two who missed should compete for second.');
+	console.assert(progress.contests[0].players.map((player) => player.name).join() === 'Bartek,Celina', 'Bartek and Celina should still be competing.');
+}
+
+console.log('Case 2: One player misses while the other two score — they lock third, not second.');
+
+{
+	const threeWay = new Overtime(pointsToPlaces([
+		{ID: 1, name: 'Anna', order: 1, points: 4},
+		{ID: 2, name: 'Bartek', order: 2, points: 4},
+		{ID: 3, name: 'Celina', order: 3, points: 4},
+	]));
+	const previous = threeWay.getLockedOccupants();
+	threeWay.markAnswer(1, 'fail');
+	threeWay.markAnswer(2, 'pass');
+	threeWay.markAnswer(3, 'pass');
+	threeWay.endRound();
+	const progress = threeWay.describeProgress(previous);
+	console.assert(progress.hasNewLocks === true, 'The player who missed should lock a podium place.');
+	console.assert(progress.wins.length === 1 && progress.wins[0].place === 3 && progress.wins[0].player.name === 'Anna', 'Anna should lock third place, because second is still being decided among the remaining two.');
+	console.assert(progress.contests.length === 1 && progress.contests[0].place === 1, 'The two who scored should compete for first.');
+}
+
+console.log('Case 3: No place locks when everyone in the contested group passes.');
+
+{
+	const threeWay = new Overtime(pointsToPlaces([
+		{ID: 1, name: 'Anna', order: 1, points: 4},
+		{ID: 2, name: 'Bartek', order: 2, points: 4},
+		{ID: 3, name: 'Celina', order: 3, points: 4},
+	]));
+	const previous = threeWay.getLockedOccupants();
+	threeWay.markAnswer(1, 'pass');
+	threeWay.markAnswer(2, 'pass');
+	threeWay.markAnswer(3, 'pass');
+	threeWay.endRound();
+	const progress = threeWay.describeProgress(previous);
+	console.assert(progress.hasNewLocks === false, 'Passing together should not lock a place.');
+	console.assert(progress.wins.length === 0, 'No wins should be reported.');
+}

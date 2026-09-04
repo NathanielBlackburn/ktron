@@ -11,10 +11,6 @@ export const error = (msg, title) => {
 	myModal.toggle();
 };
 
-export const formatOvertimePoints = (points) => {
-	return (points > 0) ? `(+${points})` : '';
-};
-
 export const formatPointsAwardText = (points) => {
 	if (points === 0) {
 		return '0';

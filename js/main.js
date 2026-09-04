@@ -22,6 +22,7 @@ window.KTron = {
 		'isCinemaLightsOut',
 		'isThemedRoundAnnouncementVisible',
 		'dismissThemedRoundAnnouncement',
+		'setShownImageAlt',
 		'togglePointsModal',
 		'openToolsPanel',
 		'showQuizPanel',

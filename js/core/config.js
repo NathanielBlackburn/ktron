@@ -1,8 +1,7 @@
 export const Loader = {
 	config: {
 		quizFiles: [],
-		debugMode: false,
-		dontRandomize: true
+		debugMode: false
 	},
 	quizzes: [],
 	quizzesReady: false,

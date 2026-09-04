@@ -7,7 +7,7 @@ import { showToast } from '../ui/helpers.js';
 import { View } from '../ui/ui.js';
 import { QuizmasterPopup } from '../ui/quizmasterPopup.js';
 import { Game } from './game.js';
-import { handleOverlayDismissKeyup, handleQuizKeyup, isQuizInputBlockedByOverlay } from './quizKeybindings.js';
+import { handleOverlayDismissKeyup, handleQuizKeyup, handleShownImageAltKey, isQuizInputBlockedByOverlay } from './quizKeybindings.js';
 
 const finishQuizLoading = () => {
 	Loader.quizzesReady = true;
@@ -89,12 +89,14 @@ export const App = {
 			if (event.target.matches('input, textarea, select')) {
 				return;
 			}
-			if (isQuizInputBlockedByOverlay(window.document, View)) {
+			if (isQuizInputBlockedByOverlay(window.document, View, event)) {
 				return;
 			}
-			if (event.key === 't' && QuizEngine.gameInProgress) {
-				View.setShownImageAlt(true);
-			}
+			handleShownImageAltKey(event, {
+				isGameInProgress: () => QuizEngine.gameInProgress,
+				view: View,
+				showAlt: true,
+			});
 		});
 		jQuery(document).on('keyup', (event) => {
 			if (event.target.matches('input, textarea, select')) {
@@ -103,18 +105,21 @@ export const App = {
 			if (handleOverlayDismissKeyup(event, { document: window.document, view: View })) {
 				return;
 			}
-			if (isQuizInputBlockedByOverlay(window.document, View)) {
+			if (isQuizInputBlockedByOverlay(window.document, View, event)) {
 				return;
 			}
-			if (event.key === 't' && QuizEngine.gameInProgress) {
-				View.setShownImageAlt(false);
-			}
+			handleShownImageAltKey(event, {
+				isGameInProgress: () => QuizEngine.gameInProgress,
+				view: View,
+				showAlt: false,
+			});
 			if (event.shiftKey && event.code == 'KeyP' && QuizEngine.gameInProgress) {
 				View.togglePointsModal();
 			} else if (event.shiftKey && event.code == 'KeyM' && QuizEngine.gameInProgress) {
 				QuizmasterPopup.open();
 			} else if (event.shiftKey && event.altKey && event.code == 'KeyQ') {
 				if (confirm(I18n.t('confirm.easterEgg'))) {
+					Game.resetDontRandomizeMode();
 					DB.purge();
 				}
 			} else if (QuizEngine.gameInProgress) {

@@ -66,9 +66,33 @@ body {
 	font-size: clamp(1.2rem, 2.2vw, 1.75rem);
 	font-weight: 600;
 	line-height: 1.45;
-	max-width: 52rem;
+	max-width: min(52rem, 100%);
 	margin-left: auto;
 	margin-right: auto;
+	box-sizing: border-box;
+}
+
+.mc-choices {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	column-gap: 40pt;
+	row-gap: 0.45rem;
+	margin: 0.35rem auto 0;
+	width: 100%;
+	text-align: left;
+}
+
+.mc-choice {
+	min-width: 0;
+}
+
+.mc-choice:nth-child(odd) {
+	justify-self: end;
+	text-align: right;
+}
+
+.mc-choice:nth-child(even) {
+	justify-self: start;
 }
 
 .quiz-info-line {
@@ -239,7 +263,7 @@ div#main {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding: 1rem 10px 1.5rem;
+	padding: 1rem 5.5rem 1.5rem 10px;
 	margin-left: calc(280px + 10px + 1.5rem);
 }
 
@@ -338,7 +362,7 @@ div#main {
 		order: 1;
 		margin-left: 0;
 		max-height: none;
-		padding: 1rem 10px;
+		padding: 1rem 5.5rem 1.5rem 10px;
 	}
 
 	.quiz-control-group--points {

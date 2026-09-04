@@ -4,7 +4,7 @@ import { Loader } from '../core/config.js';
 import { DB } from '../core/db.js';
 import { settings, resolveSelectedQuiz } from '../model/settings.js';
 import { I18n } from '../core/i18n.js';
-import { error, formatOvertimePoints, formatPointsAwardText, showToast, pointsToWords } from './helpers.js';
+import { error, formatPointsAwardText, showToast, pointsToWords } from './helpers.js';
 import { arrayIntersection, renderTags } from '../core/util.js';
 import { Assets } from '../core/assets.js';
 import { QuizEngine } from '../quiz/quizEngine.js';
@@ -48,11 +48,6 @@ const comparePointsModalRows = (a, b) => {
 	}
 	const pointsA = +a.querySelector('span[data-role="points"]').textContent;
 	const pointsB = +b.querySelector('span[data-role="points"]').textContent;
-	const overtimeA = +a.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
-	const overtimeB = +b.querySelector('span[data-role="overtime"]').textContent.replace(/[+()]/g, '');
-	if (pointsA == pointsB) {
-		return overtimeB - overtimeA;
-	}
 	return pointsB - pointsA;
 };
 
@@ -61,7 +56,7 @@ const canRemovePlayersFromGame = () => {
 };
 
 const QUIZ_CONTROLS_LOCK_MS = 450;
-const VIEWER_INITIAL_VIEWPORT_HEIGHT = 0.9;
+const VIEWER_INITIAL_VIEWPORT_COVERAGE = 0.9;
 
 const POINTS_AWARD_FLASH_CLASSES = {
 	0: 'points-award-flash--danger',
@@ -105,9 +100,13 @@ const createImageViewer = (image) => {
 		initialCoverage: 1,
 		minZoomRatio: 0.1,
 		viewed() {
-			const { naturalHeight } = viewer.imageData;
+			const { naturalWidth, naturalHeight } = viewer.imageData;
+			const viewerWidth = viewer.viewerData?.width ?? window.innerWidth;
 			const viewerHeight = viewer.viewerData?.height ?? window.innerHeight;
-			const ratio = (viewerHeight * VIEWER_INITIAL_VIEWPORT_HEIGHT) / naturalHeight;
+			const ratio = Math.min(
+				(viewerWidth * VIEWER_INITIAL_VIEWPORT_COVERAGE) / naturalWidth,
+				(viewerHeight * VIEWER_INITIAL_VIEWPORT_COVERAGE) / naturalHeight,
+			);
 			viewer.zoomTo(ratio);
 		},
 	});
@@ -281,7 +280,6 @@ export const View = {
 		const players = DB.fetchAllPlayers();
 		players.forEach((player) => {
 			player['points'] = player.isRemoved ? 0 : DB.fetchPlayerPoints(player.ID, false);
-			player['overtimePoints'] = player.isRemoved ? 0 : DB.fetchPlayerPoints(player.ID, true);
 		});
 		const tbody = document.querySelector('#points-modal-tbody');
 		players.forEach((player) => {
@@ -290,7 +288,9 @@ export const View = {
 			const pointsSpan = row.querySelector('span[data-role="points"]');
 			pointsSpan.textContent = player.isRemoved ? 0 : player.points;
 			const overtimeSpan = row.querySelector('span[data-role="overtime"]');
-			overtimeSpan.textContent = player.isRemoved ? '' : formatOvertimePoints(player.overtimePoints);
+			if (overtimeSpan) {
+				overtimeSpan.textContent = '';
+			}
 			row.querySelectorAll('[data-role="remove-player"], [data-role="points-change"]').forEach((el) => {
 				const canChange = !player.isRemoved && (el.dataset.role !== 'remove-player' || canRemovePlayersFromGame());
 				el.style.display = canChange ? '' : 'none';
@@ -398,6 +398,7 @@ export const View = {
 			destroyImageViewer(coverImg);
 			coverImg.removeAttribute('src');
 			delete coverImg.dataset.originalSrc;
+			delete coverImg.dataset.altSrc;
 			coverImg.removeAttribute('alt');
 			coverImg.classList.add('hidden');
 		}
@@ -409,7 +410,7 @@ export const View = {
 		}
 	},
 
-	setThemedRoundCover(cover, category) {
+	setThemedRoundCover(cover, category, coverAlt) {
 		this.clearThemedRoundCover();
 		if (!cover) {
 			return;
@@ -428,6 +429,9 @@ export const View = {
 		if (coverImg) {
 			coverImg.src = src;
 			coverImg.dataset.originalSrc = src;
+			if (coverAlt) {
+				coverImg.dataset.altSrc = `pytania/${QuizEngine.code}/${coverAlt}`;
+			}
 			coverImg.alt = category;
 			coverImg.classList.remove('hidden');
 			createImageViewer(coverImg);
@@ -447,7 +451,7 @@ export const View = {
 		container._themedRoundDismiss();
 	},
 
-	showThemedRoundAnnouncement({ round, category, cover }) {
+	showThemedRoundAnnouncement({ round, category, cover, coverAlt }) {
 		const container = document.getElementById('themed-round-announcement');
 		const overlay = document.getElementById('themed-round-announcement-overlay');
 		const content = document.getElementById('themed-round-announcement-content');
@@ -457,7 +461,7 @@ export const View = {
 		}
 		text.innerHTML = renderTags(I18n.t('toast.themedRound', { category }));
 		content.classList.toggle('has-cover', Boolean(cover));
-		this.setThemedRoundCover(cover, category);
+		this.setThemedRoundCover(cover, category, coverAlt);
 		let handleClick;
 		const dismiss = () => {
 			if (container.classList.contains('hidden')) {
@@ -513,6 +517,18 @@ export const View = {
 		document.querySelector('#settingsUseCustomVictoryImage').checked = settings.useCustomVictoryImage;
 		document.querySelector('#settingsUseCustomVictoryFanfare').checked = settings.useCustomVictoryFanfare;
 		document.querySelector('#settingsShowQuestionAudioOnAnswer').checked = settings.showQuestionAudioOnAnswer;
+		this.syncDontRandomizeCheckbox();
+	},
+
+	isDontRandomizeChecked() {
+		return Boolean(document.querySelector('#settingsDontRandomize')?.checked);
+	},
+
+	syncDontRandomizeCheckbox() {
+		const checkbox = document.querySelector('#settingsDontRandomize');
+		if (checkbox) {
+			checkbox.checked = QuizEngine.dontRandomize;
+		}
 	},
 
 	settingsToggle(target) {
@@ -629,14 +645,6 @@ export const View = {
 		}
 	},
 
-	getAltImageSrc(src) {
-		const dotIndex = src.lastIndexOf('.');
-		if (dotIndex === -1) {
-			return src;
-		}
-		return src.slice(0, dotIndex) + '-alt' + src.slice(dotIndex);
-	},
-
 	setImageAlt(selector, showAlt, { skipPre = false } = {}) {
 		const img = document.querySelector(selector);
 		if (!img || !img.dataset.originalSrc) {
@@ -645,7 +653,10 @@ export const View = {
 		if (skipPre && img.dataset.originalSrc.startsWith('res/pre_')) {
 			return;
 		}
-		img.src = showAlt ? this.getAltImageSrc(img.dataset.originalSrc) : img.dataset.originalSrc;
+		if (showAlt && !img.dataset.altSrc) {
+			return;
+		}
+		img.src = showAlt ? img.dataset.altSrc : img.dataset.originalSrc;
 	},
 
 	setShownImageAlt(showAlt) {
@@ -675,6 +686,11 @@ export const View = {
 		}
 		image.src = src;
 		image.dataset.originalSrc = src;
+		const altType = isAnswer ? question.answerTypeAlt : question.questionTypeAlt;
+		if (altType && mediaType !== 'pre:question' && mediaType !== 'pre:answer') {
+			const altLastPart = isAnswer ? `a-alt.${altType}` : `-alt.${altType}`;
+			image.dataset.altSrc = 'pytania/' + quizCode + '/' + question.id + altLastPart;
+		}
 		const imageContainer = jQuery('#image-container');
 		imageContainer.append(image);
 		createImageViewer(image);
@@ -803,7 +819,10 @@ export const View = {
 			View.hideEl('#info-quiz-questions-left');
 			const overtimePlayers = QuizEngine.overtime.playersToBeAsked;
 			const overtimeNames = overtimePlayers.map((p) => `<strong>${p.name}</strong>`).join(', ');
-			jQuery('#info-overtime-names').html(`${I18n.t('quizInfo.overtime')} ${overtimeNames}`);
+			jQuery('#info-overtime-names').html(
+				`<span class="quiz-info-pill-label">${I18n.t('quizInfo.overtime')}</span>`
+				+ `<span>${overtimeNames}</span>`,
+			);
 			View.showEl('#info-overtime-names');
 		}
 		const player = QuizEngine.currentPlayer;
@@ -903,10 +922,10 @@ export const View = {
 		const victoryImagePath = View.getVictoryImagePath();
 		const victoryFanfarePath = View.getVictoryFanfarePath();
 		const placeLine = (place, label, tag) => {
-			return `<${tag}>${label}: <strong>${place.name}</strong> (${place.points} ${pointsToWords(place.points)})` + ` <span style="font-size: small;">${formatOvertimePoints(place.overtimePoints)}</span>` + `</${tag}>`;
+			return `<${tag}>${label}: <strong>${place.name}</strong> (${place.points} ${pointsToWords(place.points)})</${tag}>`;
 		};
 		let html = '<h2>' + I18n.t('winner.intro') + '</h2><h1><strong style="color: darkorange;">'
-			+ firstPlace.name.toUpperCase() + '</strong></h1><h2>' + I18n.t('winner.scored') + ' ' + firstPlace.points + ' ' + pointsToWords(firstPlace.points) + '!' + ` <span style="font-size: small;">${formatOvertimePoints(firstPlace.overtimePoints)}</span>`
+			+ firstPlace.name.toUpperCase() + '</strong></h1><h2>' + I18n.t('winner.scored') + ' ' + firstPlace.points + ' ' + pointsToWords(firstPlace.points) + '!'
 			+ '</h2><h2>' + I18n.t('winner.congrats') + '</h2>'
 			+ `<div class="mg-b-10"><img src="${victoryImagePath}" id="victory-image" /></div>`;
 		if (tiers[1]) {
@@ -940,18 +959,42 @@ export const View = {
 	},
 
 	displayOvertimeMessage() {
+		const overtime = QuizEngine.overtime;
+		if (!overtime) {
+			return;
+		}
+		View.displayOvertimeProgressMessage({
+			wins: [],
+			contests: [
+				overtime.firstPlace.length > 1 ? { place: 1, players: overtime.firstPlace } : null,
+				overtime.secondPlace.length > 1 ? { place: 2, players: overtime.secondPlace } : null,
+				overtime.thirdPlace.length > 1 ? { place: 3, players: overtime.thirdPlace } : null,
+			].filter(Boolean),
+		});
+	},
+
+	displayOvertimeProgressMessage({ wins = [], contests = [] } = {}) {
+		const contestKey = {
+			1: 'overtime.forFirst',
+			2: 'overtime.forSecond',
+			3: 'overtime.forThird',
+		};
+		const winKey = {
+			1: 'overtime.winsFirst',
+			2: 'overtime.winsSecond',
+			3: 'overtime.winsThird',
+		};
+		const names = (players) => players.map((player) => `<strong>${player.name}</strong>`).join(', ');
+		const line = (text) => `<div style="text-align: center;"><p style="color: black;">${text}</p></div>`;
 		let msg = '';
-		if (QuizEngine.overtime.firstPlace.length > 1) {
-			msg += '<div style="text-align: center;"><p style="color: black;">' + I18n.t('overtime.forFirst') + ' '
-				+ QuizEngine.overtime.firstPlace.map((player) => `<strong>${player.name}</strong>`).join(', ') + '</p></div>';
-		}
-		if (QuizEngine.overtime.secondPlace.length > 1) {
-			msg += '<div style="text-align: center;"><p style="color: black;">' + I18n.t('overtime.forSecond') + ' '
-				+ QuizEngine.overtime.secondPlace.map((player) => `<strong>${player.name}</strong>`).join(', ') + '</p></div>';
-		}
-		if (QuizEngine.overtime.thirdPlace.length > 1) {
-			msg += '<div style="text-align: center;"><p style="color: black;">' + I18n.t('overtime.forThird') + ' '
-				+ QuizEngine.overtime.thirdPlace.map((player) => `<strong>${player.name}</strong>`).join(', ') + '</p></div>';
+		wins.forEach(({ place, player }) => {
+			msg += line(I18n.t(winKey[place], { name: `<strong>${player.name}</strong>` }));
+		});
+		contests.forEach(({ place, players }) => {
+			msg += line(`${I18n.t(contestKey[place])} ${names(players)}`);
+		});
+		if (!msg) {
+			return;
 		}
 		error(msg, I18n.t('overtime.title'));
 	},

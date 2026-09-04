@@ -1,4 +1,4 @@
-import { handleOverlayDismissKeyup, handleQuizKeyup, isQuizInputBlockedByOverlay } from '../../js/app/quizKeybindings.js';
+import { handleOverlayDismissKeyup, handleQuizKeyup, handleShownImageAltKey, isQuizInputBlockedByOverlay } from '../../js/app/quizKeybindings.js';
 
 const padInfo = (text) => {
 	let result = `\n--- ${text} `;
@@ -213,9 +213,65 @@ console.log('Case 8: isQuizInputBlockedByOverlay is true for cinema lights or th
 		isCinemaLightsOut: () => true,
 	};
 	console.assert(isQuizInputBlockedByOverlay(document, view) === true, 'Cinema lights should block quiz input.');
+	console.assert(
+		isQuizInputBlockedByOverlay(document, view, makeEvent('t')) === true,
+		'Cinema lights should still block the t key.',
+	);
 	view.isThemedRoundAnnouncementVisible = () => true;
 	view.isCinemaLightsOut = () => false;
 	console.assert(isQuizInputBlockedByOverlay(document, view) === true, 'Themed round overlay should block quiz input.');
+	console.assert(
+		isQuizInputBlockedByOverlay(document, view, makeEvent('t')) === false,
+		'Themed round overlay should still allow the t key so alt cover can be shown.',
+	);
+	console.assert(
+		isQuizInputBlockedByOverlay(document, view, makeEvent('a')) === true,
+		'Themed round overlay should still block other quiz shortcuts.',
+	);
 	view.isThemedRoundAnnouncementVisible = () => false;
 	console.assert(isQuizInputBlockedByOverlay(document, view) === false, 'Quiz input should be allowed when no overlay is visible.');
+}
+
+console.log(padInfo('handleShownImageAltKey tests'));
+
+console.log('Case 9: t shows and hides alt images while a game is in progress.');
+
+{
+	const calls = [];
+	const view = {
+		setShownImageAlt: (showAlt) => calls.push(showAlt),
+	};
+	const shown = handleShownImageAltKey(makeEvent('t'), {
+		isGameInProgress: () => true,
+		view,
+		showAlt: true,
+	});
+	const hidden = handleShownImageAltKey(makeEvent('t'), {
+		isGameInProgress: () => true,
+		view,
+		showAlt: false,
+	});
+	const ignored = handleShownImageAltKey(makeEvent('a'), {
+		isGameInProgress: () => true,
+		view,
+		showAlt: true,
+	});
+	console.assert(shown === true && hidden === true, 't should be handled as the alt-image shortcut.');
+	console.assert(ignored === false, 'Other keys should not toggle alt images.');
+	console.assert(calls.join() === 'true,false', 't should show then hide the alt image.');
+}
+
+console.log('Case 10: t does nothing when no game is in progress.');
+
+{
+	const calls = [];
+	const handled = handleShownImageAltKey(makeEvent('t'), {
+		isGameInProgress: () => false,
+		view: {
+			setShownImageAlt: (showAlt) => calls.push(showAlt),
+		},
+		showAlt: true,
+	});
+	console.assert(handled === false, 't should be ignored outside a game.');
+	console.assert(calls.length === 0, 'Alt images should not change outside a game.');
 }

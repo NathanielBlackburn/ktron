@@ -126,6 +126,60 @@ export class Overtime {
 		return Overtime.activeInPlace(place).length === 1;
 	}
 
+	placeByNumber(place) {
+		if (place === 1) {
+			return this.firstPlace;
+		}
+		if (place === 2) {
+			return this.secondPlace;
+		}
+		return this.thirdPlace;
+	}
+
+	getLockedOccupants() {
+		const idIfUnique = (place) => {
+			const active = Overtime.activeInPlace(place);
+			return active.length === 1 ? active[0].ID : null;
+		};
+		return {
+			1: idIfUnique(this.firstPlace),
+			2: idIfUnique(this.secondPlace),
+			3: idIfUnique(this.thirdPlace),
+		};
+	}
+
+	describeProgress(previousLocked = { 1: null, 2: null, 3: null }) {
+		const current = this.getLockedOccupants();
+		const firstStillContested = Overtime.activeInPlace(this.firstPlace).length > 1;
+		const announcedPlace = (place) => {
+			if (place === 2 && firstStillContested && this.requiredPodiumPlaces >= 3) {
+				return 3;
+			}
+			return place;
+		};
+		const wins = [];
+		[1, 2, 3].forEach((place) => {
+			if (current[place] && current[place] !== previousLocked[place]) {
+				wins.push({
+					place: announcedPlace(place),
+					player: Overtime.activeInPlace(this.placeByNumber(place))[0],
+				});
+			}
+		});
+		const contests = [];
+		[1, 2, 3].forEach((place) => {
+			const active = Overtime.activeInPlace(this.placeByNumber(place));
+			if (active.length > 1) {
+				contests.push({ place, players: active });
+			}
+		});
+		return {
+			hasNewLocks: wins.length > 0,
+			wins,
+			contests,
+		};
+	}
+
 	get isPodiumComplete() {
 		const required = this.requiredPodiumPlaces;
 		if (required >= 1 && !this.placeHasSingleActive(this.firstPlace)) {

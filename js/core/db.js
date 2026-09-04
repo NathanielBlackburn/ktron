@@ -90,7 +90,7 @@ function removeColumns(tableName, columnsToRemove) {
 
 function createDB() {
 	createTableIfNotExists(tables.players, ['name', 'order', 'removed']);
-	createTableIfNotExists(tables.games, ['game_code', 'status']);
+	createTableIfNotExists(tables.games, ['game_code', 'status', 'dontRandomize']);
 	createTableIfNotExists(tables.rounds, ['round']);
 	createTableIfNotExists(tables.questions, ['id_question', 'id_player']);
 	createTableIfNotExists(tables.points, ['id_player', 'points', 'overtime']);
@@ -167,6 +167,7 @@ function update() {
 			migrate(currentVersion);
 		}
 	}
+	addColumns(tables.games, ['dontRandomize'], false);
 }
 
 export const DB = {
@@ -224,10 +225,14 @@ export const DB = {
 		return dBase.queryAll(tables.players, {sort: [['order', 'ASC']]}).map(Player.fromRow);
 	},
 
-	createGame: function(quizCode) {
+	createGame: function(quizCode, { dontRandomize = false } = {}) {
 		this.purge(false);
 		clearRemovedFlags();
-		dBase.insert(tables.games, {game_code: quizCode, status: 'unfinished'});
+		dBase.insert(tables.games, {
+			game_code: quizCode,
+			status: 'unfinished',
+			dontRandomize: Boolean(dontRandomize),
+		});
 		const players = randomizeArray(dBase.queryAll(tables.players));
 		players.forEach((player, pos) => {
 			player.order = pos;

@@ -34,6 +34,7 @@ export const Game = {
 	restoreGameProgress(game) {
 		View.showQuizChrome();
 		const questionToShow = QuizEngine.restoreGameState(game);
+		View.syncDontRandomizeCheckbox();
 		View.createPointsModal();
 		View.showQuestion(questionToShow);
 		View.updateQuizInfo();
@@ -43,8 +44,9 @@ export const Game = {
 	},
 
 	startGameProgress(quizCode) {
+		const dontRandomize = View.isDontRandomizeChecked();
 		View.clearMainPage();
-		QuizEngine.initGameState(quizCode);
+		QuizEngine.initGameState(quizCode, { dontRandomize });
 		View.showQuizChrome();
 		View.createPointsModal();
 		Game.nextQuestion();
@@ -109,6 +111,9 @@ export const Game = {
 		if (turnResult.newRoundToast && !QuizEngine.isThemedRound()) {
 			showToast(I18n.t('toast.newRound'));
 		}
+		if (turnResult.overtimeProgress) {
+			View.displayOvertimeProgressMessage(turnResult.overtimeProgress);
+		}
 		Game.nextTurn(turnResult.nextRound);
 	},
 
@@ -136,6 +141,7 @@ export const Game = {
 			if (outcome.showWinner) {
 				QuizmasterPopup.stop();
 				DB.endQuiz();
+				Game.resetDontRandomizeMode();
 				View.showWinner(outcome.showWinner);
 				View.updatePointsModal(false);
 			} else if (outcome.startOvertime) {
@@ -186,5 +192,10 @@ export const Game = {
 		View.displayOvertimeMessage();
 		View.updatePointsModal(false);
 		Game.nextTurn();
+	},
+
+	resetDontRandomizeMode() {
+		QuizEngine.resetDontRandomize();
+		View.syncDontRandomizeCheckbox();
 	},
 };

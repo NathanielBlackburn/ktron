@@ -31,6 +31,10 @@ export const renderTags = (text) => {
 		.replace(/\[brbr\]/g, '<br /><br />')
 		.replace(/\[b\](.*?)\[\/b\]/g, '<b>$1</b>')
 		.replace(/\[i\](.*?)\[\/i\]/g, '<i>$1</i>')
+		.replace(/\[mc\]/g, '<div class="mc-choices">')
+		.replace(/\[\/mc\]/g, '</div>')
+		.replace(/\[mci\]/g, '<div class="mc-choice">')
+		.replace(/\[\/mci\]/g, '</div>')
 		.replace(/\[blue\](.*?)\[\/blue\]/g, '<span class="blue">$1</span>')
 		.replace(/\[reverse\](.*?)\[\/reverse\]/g, '<p class="reverse">$1</p>');
 };

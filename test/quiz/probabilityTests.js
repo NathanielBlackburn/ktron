@@ -220,6 +220,10 @@ mock.module(fileURLToPath(new URL('../../js/core/db.js', import.meta.url)), {
 		DB: {
 			useUpQuestion: () => {},
 			createGame: () => [],
+			fetchAllPlayers: () => [{ ID: 1, name: 'Player 1', isActive: true, isRemoved: false }],
+			fetchUsedQuestions: () => ['001'],
+			fetchLastQuestion: () => ({ id_question: '001', id_player: 1 }),
+			fetchLastRound: () => 1,
 		},
 	},
 });
@@ -228,7 +232,6 @@ mock.module(fileURLToPath(new URL('../../js/core/config.js', import.meta.url)), 
 	namedExports: {
 		Loader: {
 			config: {
-				dontRandomize: true,
 				debugMode: false,
 			},
 			quizzes: [],
@@ -252,13 +255,62 @@ mock.module(fileURLToPath(new URL('../../js/core/i18n.js', import.meta.url)), {
 	},
 });
 
+const { Loader } = await import('../../js/core/config.js');
 const { QuizEngine } = await import('../../js/quiz/quizEngine.js');
 
 console.log(padInfo('QuizEngine probability selection tests'));
 
-console.log('Case 1: A missed boosted question gains weight before the next draw.');
+console.log('Case 1: dontRandomize starts false and resets after the quiz.');
 
 {
+	console.assert(QuizEngine.dontRandomize === false, 'dontRandomize should be false when no quiz is in progress.');
+	QuizEngine.dontRandomize = true;
+	QuizEngine.resetDontRandomize();
+	console.assert(QuizEngine.dontRandomize === false, 'resetDontRandomize should restore the default.');
+}
+
+console.log('Case 2: Starting a quiz captures dontRandomize for that quiz only.');
+
+{
+	Loader.quizzes = [{
+		code: 'seq',
+		title: 'Seq',
+		questions: makePool(2),
+		themedRounds: [],
+	}];
+	QuizEngine.initGameState('seq', { dontRandomize: true });
+	console.assert(QuizEngine.dontRandomize === true, 'Checking dontRandomize and starting a quiz should enable the mode.');
+	QuizEngine.initGameState('seq');
+	console.assert(QuizEngine.dontRandomize === false, 'Starting a quiz without dontRandomize should leave the mode off.');
+}
+
+console.log('Case 2b: Restoring an unfinished quiz keeps dontRandomize for that quiz.');
+
+{
+	Loader.quizzes = [{
+		code: 'seq',
+		title: 'Seq',
+		questions: makePool(2),
+		themedRounds: [],
+	}];
+	QuizEngine.resetDontRandomize();
+	QuizEngine.restoreGameState({
+		game_code: 'seq',
+		status: 'unfinished',
+		dontRandomize: true,
+	});
+	console.assert(QuizEngine.dontRandomize === true, 'Restoring a sequential quiz should keep dontRandomize on.');
+	QuizEngine.restoreGameState({
+		game_code: 'seq',
+		status: 'unfinished',
+	});
+	console.assert(QuizEngine.dontRandomize === false, 'Restoring a quiz without the flag should leave dontRandomize off.');
+}
+
+console.log('Case 3: A missed boosted question gains weight before the next draw.');
+
+{
+	QuizEngine.dontRandomize = true;
 	QuizEngine.round = 1;
 	QuizEngine.themedRounds = [];
 	QuizEngine.currentPlayerIndex = 0;

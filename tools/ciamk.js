@@ -1,4 +1,4 @@
-const CIAMK_VERSION = '1.4.0';
+const CIAMK_VERSION = '1.5.0';
 
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
@@ -203,35 +203,149 @@ const normaliseFileName = (filePath) => {
     return newPath;
 };
 
-export const getBaseFileNameFromAlt = (fileName) => {
+const renameTo = (filePath, newPath) => {
+    if (path.resolve(filePath) === path.resolve(newPath)) {
+        return newPath;
+    }
+    fs.renameSync(filePath, filePath + '_temp');
+    fs.renameSync(filePath + '_temp', newPath);
+    return newPath;
+};
+
+export const getAltBaseStem = (fileName) => {
     const ext = path.extname(fileName);
     const baseName = path.basename(fileName, ext);
     if (!baseName.endsWith('-alt')) {
         return null;
     }
-    return baseName.slice(0, -4) + ext;
+    return baseName.slice(0, -4);
+};
+
+export const getBaseFileNameFromAlt = (fileName) => {
+    const stem = getAltBaseStem(fileName);
+    if (stem === null) {
+        return null;
+    }
+    return stem + path.extname(fileName);
 };
 
 export const isAccountedAltFile = (fileName, foundFiles) => {
-    const baseFileName = getBaseFileNameFromAlt(fileName);
-    return baseFileName !== null && foundFiles.includes(baseFileName);
+    const stem = getAltBaseStem(fileName);
+    if (stem === null) {
+        return false;
+    }
+    return foundFiles.some((found) => path.basename(found, path.extname(found)) === stem);
+};
+
+const isImageMediaType = (mediaType) => {
+    const type = String(mediaType || '').toLowerCase().trim();
+    return type === 'image' || MEDIATYPES.image.includes(type);
+};
+
+const isImageFileName = (fileName) => {
+    const ext = path.extname(fileName).replace('.', '').toLowerCase();
+    return MEDIATYPES.image.includes(ext);
+};
+
+export const getAltImageCandidates = (baseFileName) => {
+    const ext = path.extname(baseFileName);
+    const stem = path.basename(baseFileName, ext);
+    const names = [];
+    MEDIATYPES.image.forEach((imageExt) => {
+        names.push(`${stem}-alt.${imageExt}`);
+        const upper = imageExt.toUpperCase();
+        if (upper !== imageExt) {
+            names.push(`${stem}-alt.${upper}`);
+        }
+    });
+    return names;
+};
+
+export const findAltImagePath = (dirPath, baseFileName) => {
+    const candidates = getAltImageCandidates(path.basename(baseFileName));
+    return candidates
+        .map((candidate) => path.join(dirPath, candidate))
+        .find((candidatePath) => fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile());
+};
+
+export const normaliseAltFileName = (filePath) => {
+    const ext = path.extname(filePath);
+    const fileName = path.basename(filePath, ext);
+    const dir = path.dirname(filePath);
+    const stem = getAltBaseStem(path.basename(filePath));
+    let newBase = fileName;
+    if (stem) {
+        const match = stem.match(/^(\d+)(a?)$/);
+        if (match) {
+            newBase = `${padId(match[1])}${match[2]}-alt`;
+        }
+    }
+    return renameTo(filePath, `${dir}/${newBase}${ext.toLowerCase()}`);
+};
+
+const findAltImageAlongBases = (dirPath, basePaths) => {
+    const seen = new Set();
+    for (const basePath of basePaths.filter(Boolean)) {
+        const key = path.basename(basePath);
+        if (seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        const found = findAltImagePath(dirPath, basePath);
+        if (found) {
+            return found;
+        }
+    }
+    return undefined;
+};
+
+export const attachQuestionAlt = (dirPath, question, context, ...basePaths) => {
+    const altPath = findAltImageAlongBases(dirPath, basePaths);
+    if (!altPath) {
+        return null;
+    }
+    const normalised = normaliseAltFileName(altPath);
+    const field = context === 'answer' ? 'answerTypeAlt' : 'questionTypeAlt';
+    question[field] = path.extname(normalised).replace('.', '').toLowerCase();
+    return path.basename(normalised);
+};
+
+export const attachCoverAlt = (dirPath, themedRound, ...basePaths) => {
+    const altPath = findAltImageAlongBases(dirPath, basePaths);
+    if (!altPath) {
+        return null;
+    }
+    const normalised = normaliseAltFileName(altPath);
+    themedRound.coverAlt = path.basename(normalised);
+    return themedRound.coverAlt;
 };
 
 const verifyCategoryCovers = (code, themedRounds) => {
     const errors = [];
     const foundFiles = [];
-    const covers = [...new Set(
-        (themedRounds || [])
-            .map((themedRound) => themedRound.cover)
-            .filter(Boolean),
-    )];
-    covers.forEach((cover) => {
-        const filePath = path.join(`./pytania/${code}`, cover);
-        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
-            errors.push(`Brak pliku okładki kategorii: ${cover}`);
+    const pathName = `./pytania/${code}`;
+    const seenCovers = new Set();
+    (themedRounds || []).forEach((themedRound) => {
+        if (!themedRound.cover) {
             return;
         }
-        foundFiles.push(path.basename(filePath));
+        const filePath = path.join(pathName, themedRound.cover);
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+            errors.push(`Brak pliku okładki kategorii: ${themedRound.cover}`);
+            return;
+        }
+        const coverName = path.basename(filePath);
+        if (!seenCovers.has(coverName)) {
+            foundFiles.push(coverName);
+            seenCovers.add(coverName);
+        }
+        if (!isImageFileName(coverName)) {
+            return;
+        }
+        const altName = attachCoverAlt(pathName, themedRound, filePath);
+        if (altName && !foundFiles.includes(altName)) {
+            foundFiles.push(altName);
+        }
     });
     return { errors, foundFiles };
 };
@@ -273,6 +387,12 @@ const verifyMedia = async (code, questions, themedRounds = []) => {
                     const newPath = normaliseFileName(foundFile);
                     resultQuestionTypes.push(path.extname(newPath).replace('.', ''));
                     foundFiles.push(path.basename(newPath));
+                    if (isImageMediaType(mediaType)) {
+                        const altName = attachQuestionAlt(pathName, question, 'question', foundFile, newPath);
+                        if (altName) {
+                            foundFiles.push(altName);
+                        }
+                    }
                 } else {
                     errors.push(`Brak pliku: ${question.id}`);
                 }
@@ -290,6 +410,12 @@ const verifyMedia = async (code, questions, themedRounds = []) => {
                     const newPath = normaliseFileName(foundFile);
                     answerQuestionTypes.push(path.extname(newPath).replace('.', ''));
                     foundFiles.push(path.basename(newPath));
+                    if (isImageMediaType(mediaType)) {
+                        const altName = attachQuestionAlt(pathName, question, 'answer', foundFile, newPath);
+                        if (altName) {
+                            foundFiles.push(altName);
+                        }
+                    }
                 } else {
                     errors.push(`Brak pliku: ${question.id}a`);
                 }
@@ -332,12 +458,49 @@ const checkCSVColumns = (rec, countMode = mediaCountMode) => {
     return fields.every((field) => typeof rec[field] !== 'undefined');
 };
 
-export const applyQuizmasterNotesFromRecord = (question, rec) => {
-    const notes = rec.quizmasterNotes;
+export const applyQuestionNotesFromRecord = (question, rec) => {
+    const notes = rec.questionNotes;
     if (typeof notes !== 'undefined' && notes.trim()) {
-        question.quizmasterNotes = notes.trim();
+        question.qmQuestionNotes = notes.trim();
     }
     return question;
+};
+
+/**
+ * First non-empty categoryNotes per category wins.
+ * Notes without a category are reported as errors.
+ */
+export const parseCategoryNotesFromRecords = (records) => {
+    const errors = [];
+    const categoryNotes = {};
+    records.forEach((rec) => {
+        if (typeof rec.categoryNotes === 'undefined' || !rec.categoryNotes.trim()) {
+            return;
+        }
+        const notes = rec.categoryNotes.trim();
+        const category = typeof rec.category !== 'undefined' ? rec.category.trim() : '';
+        if (!category) {
+            errors.push('Wpis categoryNotes bez kategorii.');
+            return;
+        }
+        if (typeof categoryNotes[category] === 'undefined') {
+            categoryNotes[category] = notes;
+        }
+    });
+    return { categoryNotes, errors };
+};
+
+export const applyCategoryNotesToQuestions = (questions, categoryNotes) => {
+    questions.forEach((question) => {
+        if (!question.category) {
+            return;
+        }
+        const notes = categoryNotes[question.category];
+        if (notes) {
+            question.qmCategoryNotes = notes;
+        }
+    });
+    return questions;
 };
 
 export const applyCategoryImageFromRecord = (question, rec) => {
@@ -582,7 +745,23 @@ export const validateThemedRounds = (themedRounds, questions) => {
     return errors;
 };
 
-const transformMultipleChoiceQuestion = (question, errors) => {
+const splitMultipleChoiceChoices = (choicesText) =>
+    choicesText.trim().split(/\s(?=[a-z]\))/).map((item) => item.trim()).filter(Boolean);
+
+const formatMultipleChoiceChoices = (choiceItems, highlightText) => {
+    let highlighted = false;
+    const items = choiceItems.map((item) => {
+        if (!highlighted && highlightText && item.includes(highlightText)) {
+            highlighted = true;
+            const [before, ...rest] = item.split(highlightText);
+            return `[mci]${before}[blue]${highlightText}[/blue]${rest.join(highlightText)}[/mci]`;
+        }
+        return `[mci]${item}[/mci]`;
+    });
+    return `[mc]${items.join('')}[/mc]`;
+};
+
+export const transformMultipleChoiceQuestion = (question, errors) => {
     if (!['[x_x]', 'a)', 'b)'].every(el => question.questionText.includes(el))) {
         return question;
     }
@@ -600,10 +779,10 @@ const transformMultipleChoiceQuestion = (question, errors) => {
         errors.push(`W pytaniu ${question.id} odpowiedzi wielokrotnego wyboru nie są rozdzielone spacjami.`);
         return question;
     }
-    const choices = questionSplit[1].replace(/\s(?=[a-z]\))/g, '[br]');
-    result.questionText = questionSplit[0] + '[br][br]' + choices;
-    const answerSplit = choices.split(question.answerText);
-    result.answerText = questionSplit[0] + '[br][br]' + answerSplit[0] + '[blue]' + result.answerText + '[/blue]' + answerSplit[1];
+    const choiceItems = splitMultipleChoiceChoices(questionSplit[1]);
+    const stem = questionSplit[0];
+    result.questionText = stem + '[br][br]' + formatMultipleChoiceChoices(choiceItems);
+    result.answerText = stem + '[br][br]' + formatMultipleChoiceChoices(choiceItems, question.answerText);
 
     return result;
 };
@@ -673,7 +852,7 @@ const importNewQuiz = async (rl) => {
                                 question['category'] = rec.category.trim();
                             }
                             question = applyCategoryImageFromRecord(question, rec);
-                            question = applyQuizmasterNotesFromRecord(question, rec);
+                            question = applyQuestionNotesFromRecord(question, rec);
                             question = applyProbabilityFromRecord(question, rec, probabilityErrors);
                             question = applyMediaTimesFromRecord(question, rec, mediaTimeErrors);
                             question = transformMultipleChoiceQuestion(question, multipleChoiceErrors);
@@ -683,6 +862,12 @@ const importNewQuiz = async (rl) => {
                             logs = logs.concat(idErrors);
                             throw new Error('Błędy w kolumnie id.');
                         }
+                        const { categoryNotes, errors: categoryNotesErrors } = parseCategoryNotesFromRecords(records);
+                        if (categoryNotesErrors.length) {
+                            logs = logs.concat(categoryNotesErrors);
+                            throw new Error('Błędy w kolumnie categoryNotes.');
+                        }
+                        applyCategoryNotesToQuestions(json.questions, categoryNotes);
                         const { themedRounds: parsedThemedRounds, errors: themedRoundParseErrors } = parseThemedRoundsFromRecords(records);
                         const { categoryCovers, errors: categoryCoverErrors } = parseCategoryCoversFromRecords(records);
                         const themedRounds = applyCategoryCoversToThemedRounds(parsedThemedRounds, categoryCovers);
