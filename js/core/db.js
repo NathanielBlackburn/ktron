@@ -1,7 +1,7 @@
 import localStorageDB from 'localstoragedb/localstoragedb.js';
 import { Player } from '../model/player.js';
 import { randomizeArray } from './util.js';
-import { Assets } from './assets.js';
+import { applyLogoDefaultUpgrade } from './assets.js';
 
 const tables = {
 	players: 'players',
@@ -128,19 +128,7 @@ function migrateTo312() {
 }
 
 function migrateTo320() {
-	try {
-		const raw = window.localStorage.getItem('ktron_settings');
-		if (!raw) {
-			return;
-		}
-		const storedSettings = JSON.parse(raw);
-		if (!storedSettings.logo || storedSettings.logo !== Assets.defaults.LOGO_IMAGE) {
-			storedSettings.logo = Assets.defaults.LOGO_IMAGE;
-			window.localStorage.setItem('ktron_settings', JSON.stringify(storedSettings));
-		}
-	} catch {
-		// ignore invalid settings payload
-	}
+	applyLogoDefaultUpgrade();
 }
 
 function migrate(currentVersion) {

@@ -560,9 +560,14 @@ export const View = {
 			logoImg.onerror = null;
 			if (isCustom) {
 				showToast(I18n.t('toast.logoNotFound'), 'error');
+				settings.logo = Assets.defaults.LOGO_IMAGE;
+				logoImg.src = `res/logo/${Assets.defaults.LOGO_IMAGE}.png`;
+				document.getElementById('logo-list').value = Assets.defaults.LOGO_IMAGE;
+				return;
 			}
+			// Display fallback only — do not persist, or a missing new default (e.g. corto
+			// during upgrade) permanently demotes the user back to the previous logo.
 			const fallbackLogo = logo === Assets.defaults.LOGO_IMAGE ? 'colorado' : Assets.defaults.LOGO_IMAGE;
-			settings.logo = fallbackLogo;
 			logoImg.src = `res/logo/${fallbackLogo}.png`;
 			document.getElementById('logo-list').value = fallbackLogo;
 		};

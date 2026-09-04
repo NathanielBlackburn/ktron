@@ -1,4 +1,4 @@
-import { Assets } from '../core/assets.js';
+import { Assets, applyLogoDefaultUpgrade } from '../core/assets.js';
 
 export class Settings {
 
@@ -30,6 +30,7 @@ export class Settings {
 		if (typeof this.storage['showQuestionAudioOnAnswer'] === 'undefined') {
 			this.showQuestionAudioOnAnswer = false;
 		}
+		applyLogoDefaultUpgrade();
 		if (typeof this.storage['logo'] === 'undefined') {
 			this.logo = Assets.defaults.LOGO_IMAGE;
 		}

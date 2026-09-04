@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "ciamk": "node tools/ciamk.js",
     "migrate-quiz-files": "node tools/migrateQuizFiles.js",
-    "test": "node --experimental-test-module-mocks test/overtime/overtimeTests.js && node --experimental-test-module-mocks test/quiz/themedRoundsTests.js && node --experimental-test-module-mocks test/quiz/quizmasterTests.js && node test/quiz/quizKeybindingsTests.js && node --experimental-test-module-mocks test/quiz/probabilityTests.js && node --experimental-test-module-mocks test/ciamk/verifyMediaTests.js && node --experimental-test-module-mocks test/ciamk/mediaTimeTests.js && node --experimental-test-module-mocks test/ciamk/mediaCountModeTests.js && node test/ciamk/categoryImageTests.js"
+    "test": "node --experimental-test-module-mocks test/overtime/overtimeTests.js && node --experimental-test-module-mocks test/quiz/themedRoundsTests.js && node --experimental-test-module-mocks test/quiz/quizmasterTests.js && node test/quiz/quizKeybindingsTests.js && node --experimental-test-module-mocks test/quiz/probabilityTests.js && node --experimental-test-module-mocks test/ciamk/verifyMediaTests.js && node --experimental-test-module-mocks test/ciamk/mediaTimeTests.js && node --experimental-test-module-mocks test/ciamk/mediaCountModeTests.js && node test/ciamk/categoryImageTests.js && node test/quiz/logoDefaultUpgradeTests.js"
   },
   "devDependencies": {
     "vite": "^6.3.5"
