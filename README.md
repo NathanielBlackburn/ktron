@@ -8,10 +8,9 @@ Windows: https://www.freecodecamp.org/news/nvm-for-windows-how-to-download-and-i
 Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później dużo prościej instalować/aktualizować wymagane środowisko. Posiadacze Linuxa czy macOSa raczej potrafią instalować rzeczy na swoich komputerach, a jeśli tak nie jest, to niech poproszą o pomoc znajomego z IT ;)
 4. Jeśli nie chcemy użyć NVM, należy zainstalować najnowszą wersję Node.js (https://nodejs.org/en/download) odpowiednią dla naszego systemu.
 
-
 # Instalacja - easy mode
 
-1. Na głównej stronie repozytorium (https://github.com/NathanielBlackburn/ktron) kliknij z prawej strony w sekcji "Releases" wersję "3.1.1 Chris Colorado". Na następnej stronie pobierz kod aplikacji linkiem u dołu - "Source code (zip)". Rozpakuj pobrany plik.
+1. Na głównej stronie repozytorium (https://github.com/NathanielBlackburn/ktron) kliknij z prawej strony w sekcji "Releases" wersję "3.2.0 Corto Maltese". Na następnej stronie pobierz kod aplikacji linkiem u dołu - "Source code (zip)". Rozpakuj pobrany plik.
 2. Otworzyć terminal (*PowerShell* lub cmd, nvm nie działa w Git Bashu) i przejść do rozpakowanego katalogu.
 3. Wpisać komendy:  
 **macOS/Linux:**  
@@ -24,6 +23,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 `nvm install $(Get-Content .nvmrc)`  
 `nvm use $(Get-Content .nvmrc)`  
 `npm i`
+4. Aplikację uruchamia się otwierając plik `konkursotron.html` w przeglądarce.
 
 # Instalacja - pro mode
 
@@ -31,7 +31,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 2. W katalogu, gdzie chcemy umieścić aplikację, wpisać komendy:  
 `git clone git@github.com:NathanielBlackburn/ktron.git`  
 `cd ktron`  
-`git checkout v3.1.1`
+`git checkout v3.2.0`  
 **macOS/Linux:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  
 `nvm install`  
@@ -42,26 +42,29 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 `nvm install $(Get-Content .nvmrc)`  
 `nvm use $(Get-Content .nvmrc)`  
 `npm i`
-3. Konkursotron jest gotowy do pracy, można dodawać nowe konkursy.
+3. Konkursotron jest gotowy do pracy — otworzyć plik `konkursotron.html` w przeglądarce i można dodawać nowe konkursy.
 
 # Aktualizacja wersji od 3.0 wzwyż
 
-2. Otworzyć terminal umożliwiający użycie gita (*PowerShell* lub cmd, nvm nie działa w Git Bashu).
-3. Przejść do katalogu, gdzie znajduje się poprzednia wersja aplikacji.
-4. Jeśli w konkursie znajdują się pliki, które nie są częścią aplikacji, ale chcemy je zachować, należy w katalogu aplikacji utworzyć folder `temp` (zwrócić uwagę na wielkość liter) i tam je umieścić. To o tyle ważne, że wszystkie pliki nie należące do struktury aplikacji zostaną **usunięte**, ale te w katalogu `temp` zostaną zignorowane.
-6. Wpisać po kolei komendy:  
+1. Otworzyć terminal umożliwiający użycie gita (*PowerShell* lub cmd, nvm nie działa w Git Bashu).
+2. Przejść do katalogu, gdzie znajduje się poprzednia wersja aplikacji.
+3. Jeśli w konkursie znajdują się pliki, które nie są częścią aplikacji, ale chcemy je zachować, należy w katalogu aplikacji utworzyć folder `temp` (zwrócić uwagę na wielkość liter) i tam je umieścić. To o tyle ważne, że wszystkie pliki nie należące do struktury aplikacji zostaną **usunięte**, ale te w katalogu `temp` zostaną zignorowane. Katalog `res/custom` (własne logo, obrazek i fanfara zwycięzców) też jest chroniony.
+4. Wpisać po kolei komendy:  
 `git fetch origin`  
-`git rebase v3.1.1`  
+`git checkout v3.2.0`  
 **macOS/Linux:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  
 `nvm install`  
 `nvm use`  
 `npm i`  
+`npm run migrate-quiz-files`  
 **Windows:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  
 `nvm install $(Get-Content .nvmrc)`  
 `nvm use $(Get-Content .nvmrc)`  
-`npm i`
+`npm i`  
+`npm run migrate-quiz-files`
+5. **Ważne przy aktualizacji z 3.1.x:** skrypt `npm run migrate-quiz-files` przepisuje `js/quizFiles.js` ze starego formatu (`const ktronQuizFiles = […]`) na wymagany w 3.2 (`window.ktronQuizFiles = […]`). Bez tego lista konkursów może się nie wczytać. Jeśli plik jest już w nowym formacie, skrypt nic nie zmienia.
 
 # Aktualizacja z wersji 2.x, jeśli KTron był zainstalowany "ręcznie", przez kopiowanie z cudzego kompa ;)
 
@@ -72,7 +75,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 `git init .` (uwaga, na końcu jest kropka, nie przejmować się ostrzeżeniami)  
 `git remote add origin https://github.com/NathanielBlackburn/ktron.git`  
 `git fetch origin`  
-`git reset --hard v3.1.1`  
+`git reset --hard v3.2.0`  
 `git clean -df`  
 **macOS/Linux:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  
@@ -84,9 +87,9 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 `nvm install $(Get-Content .nvmrc)`  
 `nvm use $(Get-Content .nvmrc)`  
 `npm i`
-8. Wpisać komendę `npm run ciamk`. **Ciamk** to programik, którysłuży do migrowania importowania nowych konkursów oraz migrowania konkursów z wersji 2.x.
-9. Wybrać opcję 2 - "**Migruj istniejące konkursy z wersji 2.x**". Ciamk powinien wylistować konkursy, które udało mu się zmigrowąć do nowej wersji Konkursotrona. Akcję można powtarzać, nic nie zostanie zdublowane ani usunięte.
-10. Gdyby coś się zaimportowało bez potrzeby, można Ciamkiem konkursy usuwać z listy korzystając z opcji numer 3.
+5. Wpisać komendę `npm run ciamk`. **Ciamk** to programik, który służy do importowania nowych konkursów oraz migrowania konkursów z wersji 2.x.
+6. Wybrać opcję 3 - "**Migruj istniejące konkursy z wersji 2.x**". Ciamk powinien wylistować konkursy, które udało mu się zmigrować do nowej wersji Konkursotrona. Akcję można powtarzać, nic nie zostanie zdublowane ani usunięte.
+7. Gdyby coś się zaimportowało bez potrzeby, można Ciamkiem konkursy usuwać z listy korzystając z opcji numer 2.
 
 # Aktualizacja z wersji 2.x, jeśli KTron był zainstalowany gitem z Bitbucketa
 
@@ -96,7 +99,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 4. Wpisać po kolei komendy:  
 `git remote set-url origin https://github.com/NathanielBlackburn/ktron.git`  
 `git fetch origin`  
-`git reset --hard v3.1.1`  
+`git reset --hard v3.2.0`  
 `git clean -df`  
 **macOS/Linux:**  
 (dwie pierwsze tylko jeśli zainstalowany jest NVM):  
@@ -108,9 +111,9 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 `nvm install $(Get-Content .nvmrc)`  
 `nvm use $(Get-Content .nvmrc)`  
 `npm i`
-5. Wpisać komendę `npm run ciamk`. **Ciamk** to programik, którysłuży do migrowania importowania nowych konkursów oraz migrowania konkursów z wersji 2.x.
-6. Wybrać opcję 2 - "**Migruj istniejące konkursy z wersji 2.x**". Ciamk powinien wylistować konkursy, które udało mu się zmigrowąć do nowej wersji Konkursotrona. Akcję można powtarzać, nic nie zostanie zdublowane ani usunięte.
-7. Gdyby coś się zaimportowało bez potrzeby, można Ciamkiem konkursy usuwać z listy korzystając z opcji numer 3.
+5. Wpisać komendę `npm run ciamk`. **Ciamk** to programik, który służy do importowania nowych konkursów oraz migrowania konkursów z wersji 2.x.
+6. Wybrać opcję 3 - "**Migruj istniejące konkursy z wersji 2.x**". Ciamk powinien wylistować konkursy, które udało mu się zmigrować do nowej wersji Konkursotrona. Akcję można powtarzać, nic nie zostanie zdublowane ani usunięte.
+7. Gdyby coś się zaimportowało bez potrzeby, można Ciamkiem konkursy usuwać z listy korzystając z opcji numer 2.
 
 # Dodawanie nowego konkursu
 1. W arkuszu Excela, z którego zrobiony będzie konkurs, należy użyć nagłówków kolumn:
@@ -123,6 +126,7 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
         * `video` - plik wideo mp4,
     * `answer` - tekst odpowiedzi,
     * `answerType` - typ odpowiedzi (takie same typy, jak w `questionType`, w tym pusty).
+    * Pytania wielokrotnego wyboru *(opcjonalne)* - w treści `question` wstaw marker `[x_x]` między treścią pytania a wariantami, a warianty zapisz jako `a) … b) … c) … d) …` rozdzielone spacjami. W `answer` wpisz dokładnie wybrany wariant (np. `a) Paryż`). Przykład: `Które miasto?[x_x]a) Paryż b) Londyn c) Rzym d) Berlin`. Ciamk ułoży warianty w siatkę 2×2, a na ekranie odpowiedzi podświetli poprawną.
     * Obrazki `-alt` *(opcjonalne)* - jeśli obok obrazka pytania, odpowiedzi albo okładki kategorii leży plik `{nazwa}-alt.{rozszerzenie}` (rozszerzenie może być inne niż w oryginale, np. `001.png` i `001-alt.webp`, `042a.jpg` i `042a-alt.png`, `geo.png` i `geo-alt.webp`), Ciamk zapisze je jako `questionTypeAlt` / `answerTypeAlt` / `coverAlt`. Podczas konkursu przytrzymanie klawisza `t` pokazuje ten obrazek; gdy altu nie ma, `t` nic nie zmienia.
     * `category` *(opcjonalna)* - kategoria pytania, wyświetlana podczas konkursu; wymagana dla pytań używanych w rundach tematycznych,
     * `categoryImage` *(opcjonalna)* - nazwa pliku grafiki kategorii (np. `literatura.png`) z `pytania/{kodKonkursu}/`; jeśli podana, zamiast tekstowej kategorii nad pytaniem wyświetlany jest ten obrazek (nad tekstem i mediami pytania),
@@ -147,17 +151,32 @@ Instalacja nie jest wymagana, ale zalecana dla kompatybilności i później duż
 10. Jeśli dodawanie się powiedzie, Ciamk zapyta o imię/nick autora konkursu oraz tytuł. Te dane będą się wyświetlać w Konkursotronie.
 11. Jeśli w czymkolwiek się pomyliliśmy, opcja 2 po uruchomieniu Ciamka ("Usuń konkurs z listy") pozwala bezproblemowo usunąć konkurs i można go dodać jeszcze raz opcją 1.
 
-# Aktualizacja z wersji 3.1.x do 3.2
+# Prowadzenie konkursu
 
-Po aktualizacji kodu aplikacji uruchom:
+Aplikację uruchamia się otwierając plik `konkursotron.html` w przeglądarce.
 
-`npm run migrate-quiz-files`
+**Ustawienia (3.2):**
+* Język interfejsu: polski, angielski albo śląski.
+* "Nie losuj pytań" — pytania idą po kolei z arkusza zamiast z losowania (w tym z wag `probability`).
+* "Pokaż audio z pytania na ekranie odpowiedzi" — odtwarzacz z pytania zostaje widoczny przy odpowiedzi.
 
-Skrypt przepisuje `js/quizFiles.js` ze starego formatu (`const ktronQuizFiles = […]`) na wymagany w 3.2 (`window.ktronQuizFiles = […]`). Jeśli plik jest już w nowym formacie, skrypt nic nie zmienia.
+**Skróty klawiszowe podczas konkursu:**
+* `a` albo `o` — pokaż odpowiedź,
+* `0` — 0 punktów (brak odpowiedzi / źle),
+* `1` — 1 punkt,
+* `h` — 0.5 punkta,
+* `f` — 1.5 punkta,
+* `2` — 2 punkty,
+* przytrzymaj `t` — pokaż obrazek `-alt`,
+* `Esc` — zamknij ogłoszenie rundy tematycznej albo tryb kinowy,
+* `Shift+P` — tabela punktów,
+* `Shift+M` — okno Quizmaster z notatkami prowadzącego.
+
+W tabeli punktów przyciski `+` / `-` pozwalają ręcznie dodać albo odjąć punkt, a `×` obok imienia usuwa gracza z bieżącego konkursu (musi zostać przynajmniej jeden; w dogrywce usuwanie jest wyłączone).
 
 # Konfiguracja własna wyglądu
 
-Od wersji 3.2 (Corto Maltese) dostępnych jest kilka opcji konfigurowania wyglądu:
+Od wersji 3.1 (Chris Colorado) dostępnych jest kilka opcji konfigurowania wyglądu:
 
 * W ustawieniach znajduje się pole wyboru pozwalające zmienić logo aplikacji. Dostępne są wszystkie poprzednie logówki oraz aktualny + opcja "Własne". Ta ostatnia wymaga wrzucenia do katalogu `res/custom` pliku `logo.png`. Jeśli spróbujemy ją włączyć, a pliku w katalogu nie będzie, aplikacja wróci do aktualnego logo danej wersji.
 * W ustawieniach znajdują się też checkboxy dla ekranu zwycięzców: "Własny obrazek" (zamiast domyślnego z Nicolasem Cage'em) i "Własne mp3" (zamiast domyślnej fanfary z Final Fantasy). Aby z nich skorzystać, należy zaznaczyć daną opcję i do katalogu `res/custom` wrzucić własny obrazek `victory.png` i/lub własną mp3 `fanfare.mp3`. Jeśli na koniec konkursu nie zostaną one znalezione w katalogu, użyte zostaną domyślne.
