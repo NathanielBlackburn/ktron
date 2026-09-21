@@ -468,3 +468,182 @@ console.log('Case 11: start() auto-opens when the quiz only has category notes.'
 	);
 	QuizmasterPopup.stop();
 }
+
+const questionAltHtml = `<div class="quizmaster-alt"><div class="quizmaster-alt-info">quizmaster.questionAlt</div></div>`;
+const answerAltHtml = `<div class="quizmaster-alt"><div class="quizmaster-alt-info">quizmaster.answerAlt</div></div>`;
+const bothAltHtml = `<div class="quizmaster-alt"><div class="quizmaster-alt-info">quizmaster.questionAlt</div><div class="quizmaster-alt-info">quizmaster.answerAlt</div></div>`;
+const coverAltHtml = `<div class="quizmaster-alt"><div class="quizmaster-alt-info">quizmaster.coverAlt</div></div>`;
+const coverAndQuestionAltHtml = `<div class="quizmaster-alt"><div class="quizmaster-alt-info">quizmaster.coverAlt</div><div class="quizmaster-alt-info">quizmaster.questionAlt</div></div>`;
+
+const withCoverDocument = ({ visible = true, coverHidden = false, altSrc = 'pytania/test/art-alt.webp' } = {}, run) => {
+	const previousWindow = globalThis.window;
+	const elements = {
+		'themed-round-announcement': {
+			classList: createMockClassList(visible ? [] : ['hidden']),
+		},
+		'themed-round-announcement-cover': {
+			classList: createMockClassList(coverHidden ? ['hidden'] : []),
+			dataset: altSrc ? { altSrc } : {},
+		},
+	};
+	globalThis.window = {
+		document: {
+			getElementById(id) {
+				return elements[id] || null;
+			},
+		},
+	};
+	try {
+		run();
+	} finally {
+		globalThis.window = previousWindow;
+	}
+};
+
+console.log('Case 12: A question -alt image is announced on the Quizmaster screen.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	QuizmasterPopup.popup = popup;
+	QuizmasterPopup.enabled = true;
+	QuizmasterPopup.update(makeQuestion('012', { questionTypeAlt: 'webp' }));
+	console.assert(
+		popup.document.getElementById('quizmaster-body').innerHTML === questionAltHtml,
+		'Question alt info should appear even without host notes.',
+	);
+	QuizmasterPopup.stop();
+}
+
+console.log('Case 13: An answer -alt image is announced on the Quizmaster screen.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	QuizmasterPopup.popup = popup;
+	QuizmasterPopup.enabled = true;
+	QuizmasterPopup.update(makeQuestion('013', { answerTypeAlt: 'png' }));
+	console.assert(
+		popup.document.getElementById('quizmaster-body').innerHTML === answerAltHtml,
+		'Answer alt info should appear even without host notes.',
+	);
+	QuizmasterPopup.stop();
+}
+
+console.log('Case 14: Question and answer -alt images are both announced, above notes.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	QuizmasterPopup.popup = popup;
+	QuizmasterPopup.enabled = true;
+	QuizmasterPopup.update(makeQuestion('014', {
+		questionTypeAlt: 'webp',
+		answerTypeAlt: 'png',
+		qmQuestionNotes: 'Question hint',
+	}));
+	console.assert(
+		popup.document.getElementById('quizmaster-body').innerHTML ===
+			bothAltHtml + questionNotesHtml('Question hint'),
+		'Alt info should appear above question notes.',
+	);
+	QuizmasterPopup.stop();
+}
+
+console.log('Case 15: Blank alt fields do not replace the empty-notes message.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	QuizmasterPopup.popup = popup;
+	QuizmasterPopup.enabled = true;
+	QuizmasterPopup.update(makeQuestion('015', { questionTypeAlt: '   ', answerTypeAlt: '' }));
+	console.assert(
+		popup.document.getElementById('quizmaster-body').innerHTML.includes('quizmaster.empty'),
+		'Blank alt fields should not count as alt-image info.',
+	);
+	QuizmasterPopup.stop();
+}
+
+console.log('Case 16: A category cover -alt image is announced while the cover is shown.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	QuizmasterPopup.popup = popup;
+	QuizmasterPopup.enabled = true;
+	withCoverDocument({}, () => {
+		QuizmasterPopup.update(makeQuestion('016'));
+		console.assert(
+			popup.document.getElementById('quizmaster-body').innerHTML === coverAltHtml,
+			'Cover alt info should appear while the themed round cover is shown, even without host notes.',
+		);
+	});
+	QuizmasterPopup.stop();
+}
+
+console.log('Case 17: Cover -alt info is omitted when the cover is not shown.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	QuizmasterPopup.popup = popup;
+	QuizmasterPopup.enabled = true;
+	withCoverDocument({ visible: false }, () => {
+		QuizmasterPopup.update(makeQuestion('017'));
+		console.assert(
+			popup.document.getElementById('quizmaster-body').innerHTML.includes('quizmaster.empty'),
+			'Cover alt info should not appear after the themed round cover is dismissed.',
+		);
+	});
+	withCoverDocument({ coverHidden: true }, () => {
+		QuizmasterPopup.update(makeQuestion('017b'));
+		console.assert(
+			popup.document.getElementById('quizmaster-body').innerHTML.includes('quizmaster.empty'),
+			'Cover alt info should not appear when the announcement has no cover image.',
+		);
+	});
+	withCoverDocument({ altSrc: '' }, () => {
+		QuizmasterPopup.update(makeQuestion('017c'));
+		console.assert(
+			popup.document.getElementById('quizmaster-body').innerHTML.includes('quizmaster.empty'),
+			'Cover alt info should not appear when the shown cover has no -alt image.',
+		);
+	});
+	QuizmasterPopup.stop();
+}
+
+console.log('Case 18: Cover -alt info appears above question -alt info while the cover is shown.');
+
+{
+	const popup = createMockPopup();
+	popup.document.write();
+	QuizmasterPopup.popup = popup;
+	QuizmasterPopup.enabled = true;
+	withCoverDocument({}, () => {
+		QuizmasterPopup.update(makeQuestion('018', { questionTypeAlt: 'webp' }));
+		console.assert(
+			popup.document.getElementById('quizmaster-body').innerHTML === coverAndQuestionAltHtml,
+			'Cover alt info should appear above question alt info while the cover is shown.',
+		);
+	});
+	QuizmasterPopup.stop();
+}
+
+console.log('Case 19: Opening Quizmaster while a cover with -alt is shown announces the cover.');
+
+{
+	const popup = createMockPopup();
+	QuizmasterPopup.popup = null;
+	QuizmasterPopup.enabled = true;
+	QuizmasterPopup.openWindow = () => popup;
+	QuizEngine.currentQuestion = makeQuestion('019');
+	withCoverDocument({}, () => {
+		QuizmasterPopup.open();
+		console.assert(
+			popup.document.getElementById('quizmaster-body').innerHTML === coverAltHtml,
+			'Opening Quizmaster during a themed round cover should announce the cover -alt image.',
+		);
+	});
+	QuizmasterPopup.stop();
+}

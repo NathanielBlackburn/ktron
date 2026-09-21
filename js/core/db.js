@@ -15,12 +15,13 @@ const tables = {
 };
 
 let dBase = new localStorageDB('konkursotron', localStorage);
-const version = '3.2.0';
+const version = '3.2.1';
 const migrationVersions = [
 	'3.1.0',
 	'3.1.1',
 	'3.1.2',
 	'3.2.0',
+	'3.2.1',
 ];
 
 function createTableIfNotExists(name, fields) {

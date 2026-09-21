@@ -479,6 +479,7 @@ export const View = {
 					content.classList.remove('has-cover');
 					gsap.set([overlay, content], { clearProps: 'all' });
 					this.clearThemedRoundCover();
+					QuizmasterPopup.update(QuizEngine.currentQuestion);
 				},
 			});
 		};
@@ -496,6 +497,7 @@ export const View = {
 		container._themedRoundDismiss = dismiss;
 		container.classList.remove('hidden');
 		container.setAttribute('aria-hidden', 'false');
+		QuizmasterPopup.update(QuizEngine.currentQuestion);
 		gsap.killTweensOf([overlay, content]);
 		gsap.set(overlay, { opacity: 0 });
 		gsap.set(content, { scale: 0, opacity: 1 });

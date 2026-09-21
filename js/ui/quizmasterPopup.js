@@ -9,6 +9,36 @@ const QUIZMASTER_WINDOW_FEATURES = 'popup=yes,width=1080,height=810,left=80,top=
 
 let quizmasterControlsLockTimer = null;
 
+const hasAltImageType = (value) => typeof value === 'string' && value.trim() !== '';
+
+const isElementShown = (el) => Boolean(el) && !el.classList?.contains('hidden');
+
+const isThemedRoundCoverAltShown = () => {
+	if (typeof window === 'undefined' || !window.document?.getElementById) {
+		return false;
+	}
+	const container = window.document.getElementById('themed-round-announcement');
+	const coverImg = window.document.getElementById('themed-round-announcement-cover');
+	return isElementShown(container) && isElementShown(coverImg) && hasAltImageType(coverImg.dataset?.altSrc);
+};
+
+const buildAltInfoHtml = (question) => {
+	const items = [];
+	if (isThemedRoundCoverAltShown()) {
+		items.push(`<div class="quizmaster-alt-info">${escapeHTML(I18n.t('quizmaster.coverAlt'))}</div>`);
+	}
+	if (hasAltImageType(question?.questionTypeAlt)) {
+		items.push(`<div class="quizmaster-alt-info">${escapeHTML(I18n.t('quizmaster.questionAlt'))}</div>`);
+	}
+	if (hasAltImageType(question?.answerTypeAlt)) {
+		items.push(`<div class="quizmaster-alt-info">${escapeHTML(I18n.t('quizmaster.answerAlt'))}</div>`);
+	}
+	if (!items.length) {
+		return '';
+	}
+	return `<div class="quizmaster-alt">${items.join('')}</div>`;
+};
+
 const getMainKTronWindow = () => (window.KTron ? window : window.opener);
 
 const CONTROL_BUTTON_IDS = [
@@ -146,6 +176,22 @@ header {
 	color: #8b919c;
 	font-style: italic;
 }
+.quizmaster-alt {
+	margin: 0 0 1rem;
+	padding: 0.75rem 0.9rem;
+	border: 1px solid #3d7ea6;
+	border-radius: 0.4rem;
+	background: #1a2a38;
+	color: #9ad4ff;
+	font-size: 1.05rem;
+	font-weight: 600;
+	white-space: normal;
+}
+.quizmaster-alt-info + .quizmaster-alt-info {
+	margin-top: 0.4rem;
+}
+.quizmaster-alt + .quizmaster-question-notes,
+.quizmaster-alt + .quizmaster-category-notes,
 .quizmaster-question-notes + .quizmaster-category-notes {
 	margin-top: 1rem;
 	padding-top: 1rem;
@@ -402,14 +448,18 @@ ${buildControlsHtml()}
 		}
 		const questionNotes = QuizEngine.getQuestionNotes(question);
 		const categoryNotes = QuizEngine.getCategoryNotes(question);
-		if (questionNotes || categoryNotes) {
-			const parts = [];
-			if (questionNotes) {
-				parts.push(`<div class="quizmaster-question-notes">${renderTags(questionNotes)}</div>`);
-			}
-			if (categoryNotes) {
-				parts.push(`<div class="quizmaster-category-notes">${renderTags(categoryNotes)}</div>`);
-			}
+		const altInfo = buildAltInfoHtml(question);
+		const parts = [];
+		if (altInfo) {
+			parts.push(altInfo);
+		}
+		if (questionNotes) {
+			parts.push(`<div class="quizmaster-question-notes">${renderTags(questionNotes)}</div>`);
+		}
+		if (categoryNotes) {
+			parts.push(`<div class="quizmaster-category-notes">${renderTags(categoryNotes)}</div>`);
+		}
+		if (parts.length) {
 			body.innerHTML = parts.join('');
 		} else {
 			body.innerHTML = `<p class="quizmaster-empty">${escapeHTML(I18n.t('quizmaster.empty'))}</p>`;
